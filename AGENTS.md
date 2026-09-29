@@ -37,6 +37,13 @@ SYSTEM.md là role prompt, không tự tạo runtime hoặc scheduled agent. Khi
 - Mọi financial action phải audit được, có concurrency control và trace từ confirmation tới exchange result và ledger.
 - Mọi thay đổi schema database (thêm/sửa/xóa bảng, cột, quan hệ, enum, index, migration) phải cập nhật `docs/DATABASE.md` trong cùng thay đổi. Architecture không READY và implementation không coi là hoàn tất nếu `docs/DATABASE.md` chưa khớp schema thực tế/đã thiết kế. Không xóa lịch sử bảng cũ khỏi tài liệu khi loại bỏ, chuyển xuống mục "Đã loại bỏ" kèm lý do.
 
+## Git worktree & branching
+- Không làm việc trực tiếp trên `main`. Mọi công việc phải bắt đầu bằng checkout một nhánh mới từ `main`.
+- Mỗi session làm việc trong một `git worktree` riêng (`git worktree add <path> -b <branch> main`), không dùng chung worktree giữa các session để tránh xung đột file đang sửa dở/uncommitted.
+- Trước khi tạo worktree/branch mới, chạy `git worktree list` và `git status` để kiểm tra state hiện có, tránh tạo trùng hoặc đè lên worktree đang có việc dở dang.
+- Đặt tên branch/worktree phản ánh feature slug đang làm (khớp `features/<feature>/`) để dễ đối chiếu với `decision.json`.
+- Dọn worktree (`git worktree remove`) chỉ sau khi branch đã merge hoặc bị bỏ theo xác nhận của user; không tự xoá worktree/branch đang có thay đổi chưa merge mà chưa hỏi user.
+
 ## Trạng thái và thay đổi
 `features/<feature>/decision.json` là nguồn sự thật trạng thái workflow. Artifact chứa nội dung, bằng chứng; không thể thay contract để bỏ gate. Chỉ coordinator chuyển trạng thái theo workflow. Thay requirement/architecture hoặc implementation sau approval phải invalidate các gate phụ thuộc. Không ghi APPROVED/PASS khi chỉ có dự định hoặc template.
 
