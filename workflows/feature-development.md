@@ -9,7 +9,7 @@ IDEA → REQUIREMENT → BA_FEASIBILITY → ARCHITECTURE → IMPLEMENTATION → 
 | REQUIREMENT | product-requirement / idea + domain | requirements/<feature>.md; testable AC và rule IDs, out-of-scope, open questions; requirement READY |
 | BA_FEASIBILITY | ba-feasibility / requirement revision | analysis/<feature>-feasibility.md; evidence/API/financial checks; APPROVED hoặc APPROVED_WITH_CONDITIONS có conditions rõ |
 | ARCHITECTURE | architect / BA + requirement | architecture/<feature>.md; trace AC, schema/state/API/security/concurrency/test strategy; READY khi không còn blocker ảnh hưởng thiết kế |
-| IMPLEMENTATION | backend + frontend / approved inputs | thực thi đúng scope, tests và evidence; chỉ bắt đầu khi user đã yêu cầu implementation, architecture READY và conditions due gate đã giải quyết |
+| IMPLEMENTATION | backend + frontend / approved inputs | thực thi đúng scope, tests và evidence, Swagger doc + Postman collection khớp API thực tế (xem `AGENTS.md`); chỉ bắt đầu khi user đã yêu cầu implementation, architecture READY và conditions due gate đã giải quyết |
 | CODE_REVIEW | independent code-review / diff + inputs + tests | features/<feature>/review.md; APPROVED hoặc REJECTED, gắn implementation revision |
 | QA | qa / reviewed revision + AC | qa/<feature>.md; PASS, PASS_WITH_WARNINGS hoặc FAIL, cùng revision |
 | DONE | Coordinator / toàn bộ evidence | mọi gate hợp lệ, không blocker/condition overdue, warnings được xử lý theo policy |

@@ -1,0 +1,356 @@
+{
+  "info": {
+    "name": "Margin Trading — user-authentication",
+    "description": "Postman collection cho các API của feature user-authentication (auth, csrf, account-link, telegram-bot). Sinh thủ công khớp với Swagger doc tại GET /api/docs-json — cập nhật cả hai khi API contract đổi.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "csrfToken",
+      "value": ""
+    },
+    {
+      "key": "telegramCode",
+      "value": ""
+    },
+    {
+      "key": "telegramWebhookSecret",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "Get CSRF token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/csrf-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "csrf-token"
+              ]
+            },
+            "description": "Gọi trước mọi POST cần CSRF (register/login/logout/link/telegram start). Session anonymous vẫn dùng được."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('csrfToken', body.csrfToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"a-strong-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "200 = đăng ký + set session cookie thành công. 409 = email đã tồn tại."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+                  "pm.sendRequest(req, function (err, response) {",
+                  "  pm.collectionVariables.set('csrfToken', response.json().csrfToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"a-strong-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "200 = đăng nhập thành công. 401 = sai email/password hoặc tài khoản đang bị khoá (lockout). Lưu ý: tạo session mới (regenerate) nên CSRF token phải lấy lại ngay trước request này, không tái dùng token cũ."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+                  "pm.sendRequest(req, function (err, response) {",
+                  "  pm.collectionVariables.set('csrfToken', response.json().csrfToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Cần session hợp lệ (cookie 'sid'). 401 nếu chưa đăng nhập/session hết hạn."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Cần session hợp lệ + CSRF token."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+                  "pm.sendRequest(req, function (err, response) {",
+                  "  pm.collectionVariables.set('csrfToken', response.json().csrfToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "account-link",
+      "item": [
+        {
+          "name": "Link local credential",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"a-strong-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/link/local",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "link",
+                "local"
+              ]
+            },
+            "description": "Gắn local credential vào user đang đăng nhập (vd. đăng nhập bằng Telegram, muốn thêm email/password). 409 nếu đã có local credential hoặc email bị user khác dùng."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+                  "pm.sendRequest(req, function (err, response) {",
+                  "  pm.collectionVariables.set('csrfToken', response.json().csrfToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "telegram",
+      "item": [
+        {
+          "name": "Start login/link request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-csrf-token",
+                "value": "{{csrfToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/telegram/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "telegram",
+                "start"
+              ]
+            },
+            "description": "Purpose (LOGIN vs LINK) do server tự suy ra từ session, không truyền từ client. Trả về code dùng cho deep link `/start <code>` trên bot."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+                  "pm.sendRequest(req, function (err, response) {",
+                  "  pm.collectionVariables.set('csrfToken', response.json().csrfToken);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body && body.code) { pm.collectionVariables.set('telegramCode', body.code); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Poll status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/telegram/status/{{telegramCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "telegram",
+                "status",
+                "{{telegramCode}}"
+              ]
+            },
+            "description": "PENDING | CONFIRMED | CLAIMED | REJECTED | EXPIRED. Gọi lặp lại (client poll ~2s) tới khi CLAIMED/REJECTED/EXPIRED."
+          }
+        },
+        {
+          "name": "Webhook (Telegram infra only, manual/ops test)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-telegram-bot-api-secret-token",
+                "value": "{{telegramWebhookSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update_id\": 1,\n  \"message\": {\n    \"text\": \"/start {{telegramCode}}\",\n    \"from\": { \"id\": 123456789, \"username\": \"example_user\", \"first_name\": \"Example\" }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/telegram/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "telegram",
+                "webhook"
+              ]
+            },
+            "description": "Không phải API cho client — Telegram Bot API gọi endpoint này. Không xuất hiện trong Swagger public doc (@ApiExcludeEndpoint). Giữ ở đây để test thủ công/ops mà không cần bot thật. Luôn trả 200 kể cả code không hợp lệ/hết hạn."
+          }
+        }
+      ]
+    }
+  ]
+}

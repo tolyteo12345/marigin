@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Headers, Param, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { SkipThrottle } from '@nestjs/throttler';
+import { ApiExcludeEndpoint, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { CsrfGuard } from '../csrf/csrf.guard';
 import { AuditService } from '../audit/audit.service';
@@ -9,6 +10,7 @@ import { TelegramUpdate } from './telegram-update.types';
 import { regenerateSession, saveSession } from '../session-store/session.helpers';
 import '../session-store/session.types';
 
+@ApiTags('auth')
 @Controller('auth/telegram')
 export class TelegramBotController {
   constructor(
@@ -18,6 +20,8 @@ export class TelegramBotController {
 
   // POST /api/auth/telegram/start — session may be anonymous or authenticated;
   // purpose (LOGIN vs LINK) is derived server-side from the session, never from the client.
+  @ApiOperation({ summary: 'Tạo yêu cầu đăng nhập/link qua Telegram, trả về code + deep link' })
+  @ApiResponse({ status: 201, description: 'Tạo request thành công' })
   @UseGuards(CsrfGuard)
   @Post('start')
   async start(@Req() req: Request) {
@@ -37,6 +41,9 @@ export class TelegramBotController {
   }
 
   // GET /api/auth/telegram/status/:code
+  @ApiOperation({ summary: 'Poll trạng thái một request đăng nhập/link Telegram theo code' })
+  @ApiParam({ name: 'code', description: 'Code sinh ra từ POST /auth/telegram/start' })
+  @ApiResponse({ status: 200, description: 'PENDING | CONFIRMED | CLAIMED | REJECTED | EXPIRED' })
   @Get('status/:code')
   async status(@Param('code') code: string, @Req() req: Request) {
     const request = await this.telegram.getRequest(code);
@@ -92,6 +99,10 @@ export class TelegramBotController {
   // POST /api/auth/telegram/webhook — Telegram infra calls this directly, no
   // browser session/CSRF applies. Secret token MUST be verified before
   // anything else is read/processed (COND-A05).
+  // Excluded from the public API doc: this is not a contract for our own
+  // clients, it is Telegram's Bot API calling us (documented separately in
+  // the Postman collection for manual/ops testing instead).
+  @ApiExcludeEndpoint()
   @SkipThrottle()
   @Post('webhook')
   async webhook(

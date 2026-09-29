@@ -14,12 +14,12 @@ Quy ước:
 |---|---|---|---|---|
 | BinanceConnection | PLANNED | binance-read-only-connection | Binance API key connection (encrypted) + trạng thái verify per-user | sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210 |
 | ConnectionAuditLog | PLANNED | binance-read-only-connection | Audit log redacted cho add/verify/read/revoke connection | sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210 |
-| User | PLANNED | user-authentication | Identity gốc; không chứa email/password trực tiếp (xem LocalCredential/TelegramIdentity) | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
-| LocalCredential | PLANNED | user-authentication | Email + password hash (argon2id) cho 1 User, tối đa 1/user ở MVP | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
-| TelegramIdentity | PLANNED | user-authentication | Telegram identity (telegramUserId) cho 1 User, tối đa 1/user ở MVP, telegramUserId unique toàn hệ thống | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
-| TelegramLoginRequest | PLANNED | user-authentication | Phiên đăng nhập/liên kết Telegram đang chờ, khớp bởi bot khi user gửi `/start <code>` (deep-link), ephemeral | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
-| Session | PLANNED | user-authentication | Session store cho `express-session` (custom `PrismaSessionStore`), ephemeral, không phải audit trail | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
-| AuthAuditLog | PLANNED | user-authentication | Audit log redacted cho register/login/logout/link-account | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
+| User | IMPLEMENTED | user-authentication | Identity gốc; không chứa email/password trực tiếp (xem LocalCredential/TelegramIdentity) | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
+| LocalCredential | IMPLEMENTED | user-authentication | Email + password hash (argon2id) cho 1 User, tối đa 1/user ở MVP | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
+| TelegramIdentity | IMPLEMENTED | user-authentication | Telegram identity (telegramUserId) cho 1 User, tối đa 1/user ở MVP, telegramUserId unique toàn hệ thống | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
+| TelegramLoginRequest | IMPLEMENTED | user-authentication | Phiên đăng nhập/liên kết Telegram đang chờ, khớp bởi bot khi user gửi `/start <code>` (deep-link), ephemeral | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
+| Session | IMPLEMENTED | user-authentication | Session store cho `express-session` (custom `PrismaSessionStore`), ephemeral, không phải audit trail | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
+| AuthAuditLog | IMPLEMENTED | user-authentication | Audit log redacted cho register/login/logout/link-account | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
 
 Ghi chú: `BinanceConnection.userId` (string) là FK logic tới `User.id` (uuid) của feature `user-authentication` — đã xác nhận khớp kiểu khi `architecture/user-authentication.md` đạt READY (2026-09-29). Không thay đổi nội dung/revision của `architecture/binance-read-only-connection.md` vì contract `req.user.id`/cookie session/CSRF không đổi so với giả định ban đầu (BLOCKER-ARCH-001), chỉ có ghi chú tài liệu này được cập nhật.
 
@@ -73,7 +73,7 @@ Index/constraint quan trọng: index theo `userId`, index theo `connectionId`. A
 Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/binance-read-only-connection.md.
 
 ### User
-Trạng thái: PLANNED
+Trạng thái: IMPLEMENTED
 Owner feature: user-authentication (architecture/user-authentication.md revision: sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b)
 Phụ thuộc bởi: binance-read-only-connection (BinanceConnection.userId)
 
@@ -84,10 +84,10 @@ Phụ thuộc bởi: binance-read-only-connection (BinanceConnection.userId)
 
 Quan hệ: 1-1 với LocalCredential (optional), 1-1 với TelegramIdentity (optional).
 Index/constraint quan trọng: không có unique field ngoài PK ở bảng này (identity thật nằm ở LocalCredential/TelegramIdentity).
-Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md.
+Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md. 2026-09-29 — migration `20260929000000_init` áp dụng thật lên Postgres (`prisma migrate deploy`), chuyển PLANNED → IMPLEMENTED.
 
 ### LocalCredential
-Trạng thái: PLANNED
+Trạng thái: IMPLEMENTED
 Owner feature: user-authentication (architecture/user-authentication.md revision: sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b)
 Phụ thuộc bởi: (chưa có feature nào khác)
 
@@ -104,10 +104,10 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 
 Quan hệ: `userId` → User.id.
 Index/constraint quan trọng: unique(`userId`), unique(`email`).
-Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md.
+Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md. 2026-09-29 — migration `20260929000000_init` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
 
 ### TelegramIdentity
-Trạng thái: PLANNED
+Trạng thái: IMPLEMENTED
 Owner feature: user-authentication (architecture/user-authentication.md revision: sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b)
 Phụ thuộc bởi: (chưa có feature nào khác)
 
@@ -124,10 +124,10 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 
 Quan hệ: `userId` → User.id.
 Index/constraint quan trọng: unique(`userId`), unique(`telegramUserId`) — chặn race liên kết trùng ở tầng DB, không chỉ application check.
-Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md (Telegram Login Widget, có `photoUrl`). 2026-09-29 — đổi cơ chế Telegram sang bot deep-link (`/start <code>`): bỏ cột `photoUrl` (không có sẵn từ update Bot API mà không gọi thêm API), `firstName` đổi thành nullable (cùng lý do), cùng revision architecture mới.
+Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md (Telegram Login Widget, có `photoUrl`). 2026-09-29 — đổi cơ chế Telegram sang bot deep-link (`/start <code>`): bỏ cột `photoUrl` (không có sẵn từ update Bot API mà không gọi thêm API), `firstName` đổi thành nullable (cùng lý do), cùng revision architecture mới. 2026-09-29 — migration `20260929000000_init` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
 
 ### TelegramLoginRequest
-Trạng thái: PLANNED
+Trạng thái: IMPLEMENTED
 Owner feature: user-authentication (architecture/user-authentication.md revision: sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b)
 Phụ thuộc bởi: (chưa có feature nào khác)
 
@@ -149,10 +149,10 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 
 Quan hệ: `linkingUserId` → User.id (logic, không FK cứng bắt buộc vì có thể null); không FK tới TelegramIdentity (record này ephemeral, chỉ dùng để bàn giao kết quả xác nhận).
 Index/constraint quan trọng: index theo `initiatorSessionSid`. Ephemeral — không phải audit trail; sự kiện quan trọng ghi lại qua AuthAuditLog.
-Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md (thay thế cơ chế Telegram Login Widget/HMAC bằng bot deep-link).
+Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md (thay thế cơ chế Telegram Login Widget/HMAC bằng bot deep-link). 2026-09-29 — migration `20260929000000_init` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
 
 ### Session
-Trạng thái: PLANNED
+Trạng thái: IMPLEMENTED
 Owner feature: user-authentication (architecture/user-authentication.md revision: sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b)
 Phụ thuộc bởi: (chưa có feature nào khác)
 
@@ -164,10 +164,10 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 
 Quan hệ: không có FK cứng (session data tham chiếu userId trong JSON, không migrate-checked).
 Index/constraint quan trọng: index theo `expiresAt` (dọn session hết hạn). Không phải append-only — bị xoá khi logout/hết hạn, không phải audit trail.
-Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md (custom PrismaSessionStore implement `express-session` Store interface).
+Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md (custom PrismaSessionStore implement `express-session` Store interface). 2026-09-29 — migration `20260929000000_init` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
 
 ### AuthAuditLog
-Trạng thái: PLANNED
+Trạng thái: IMPLEMENTED
 Owner feature: user-authentication (architecture/user-authentication.md revision: sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b)
 Phụ thuộc bởi: (chưa có feature nào khác)
 
@@ -183,7 +183,7 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 
 Quan hệ: `userId` liên kết logic tới User (không FK cứng — giữ log kể cả nếu user bị xoá trong tương lai, dù xoá user chưa nằm trong scope MVP).
 Index/constraint quan trọng: index theo `userId`. Append-only — không update/delete.
-Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md. 2026-09-29 — cập nhật danh sách `action` cho cơ chế Telegram bot deep-link (thay LOGIN_TELEGRAM_SUCCESS/FAILED bằng TELEGRAM_LOGIN_REQUEST_CREATED/CONFIRMED/CLAIMED/EXPIRED/TELEGRAM_WEBHOOK_REJECTED), cùng revision architecture mới.
+Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md. 2026-09-29 — cập nhật danh sách `action` cho cơ chế Telegram bot deep-link (thay LOGIN_TELEGRAM_SUCCESS/FAILED bằng TELEGRAM_LOGIN_REQUEST_CREATED/CONFIRMED/CLAIMED/EXPIRED/TELEGRAM_WEBHOOK_REJECTED), cùng revision architecture mới. 2026-09-29 — migration `20260929000000_init` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
 
 ### Mẫu (copy khi thêm bảng mới)
 ```
