@@ -36,6 +36,7 @@ SYSTEM.md là role prompt, không tự tạo runtime hoặc scheduled agent. Khi
 - Không tự chọn FIFO/LIFO/pro-rata/source selection. Không tự mở rộng invariant BTC/ETH sang SOL.
 - Mọi financial action phải audit được, có concurrency control và trace từ confirmation tới exchange result và ledger.
 - Mọi thay đổi schema database (thêm/sửa/xóa bảng, cột, quan hệ, enum, index, migration) phải cập nhật `docs/DATABASE.md` trong cùng thay đổi. Architecture không READY và implementation không coi là hoàn tất nếu `docs/DATABASE.md` chưa khớp schema thực tế/đã thiết kế. Không xóa lịch sử bảng cũ khỏi tài liệu khi loại bỏ, chuyển xuống mục "Đã loại bỏ" kèm lý do.
+- Mọi endpoint API thêm/sửa (route, method, request/response shape, status code, auth requirement) phải có Swagger doc (`@nestjs/swagger` decorator trên controller + DTO, phục vụ tại `/api/docs` non-production) và Postman collection (`backend/postman/*.postman_collection.json`) cập nhật cùng lúc trong cùng thay đổi. Endpoint không dành cho client (vd. webhook nhận từ bên thứ ba) được phép `@ApiExcludeEndpoint()` khỏi Swagger nhưng vẫn phải có trong Postman collection kèm ghi chú lý do exclude. Implementation không coi là hoàn tất nếu 2 tài liệu này chưa khớp API thực tế; review/QA phải verify bằng cách chạy thật request trong Postman collection (không chỉ đọc qua), không chỉ tin mô tả.
 
 ## Git worktree & branching
 - Không làm việc trực tiếp trên `main`. Mọi công việc phải bắt đầu bằng checkout một nhánh mới từ `main`.

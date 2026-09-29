@@ -5,7 +5,14 @@ Requirement revision: r3 sha256:1702d36a21ab7c886ad4287355ae3f2abd39a7484317783c
 Decision: features/user-authentication/decision.json
 
 ## Trạng thái tổng quan
-Implementation **IN_PROGRESS**, chưa READY. Code backend + frontend đã viết đầy đủ theo scope, build sạch, unit test pass, nhưng **chưa có bằng chứng chạy được với Postgres thật** (không có DB trong sandbox lúc implement) — đây là điều kiện còn thiếu trước khi coi implementation READY.
+Implementation **IN_PROGRESS**, chưa READY. Code backend + frontend đã viết đầy đủ theo scope, build sạch, unit test pass. Đã verify chạy thật với Postgres thật (Docker) cho từng endpoint qua curl/Postman (xem mục "API documentation" và "Việc còn lại" bên dưới) — vẫn còn thiếu integration test tự động (Supertest) và chạy 2 server thật (backend+frontend) nối với nhau trước khi coi implementation READY.
+
+## API documentation (Swagger + Postman)
+Theo yêu cầu user 2026-09-29 ("API đang không có document..."), đã bổ sung và cập nhật `AGENTS.md`/`workflows/feature-development.md` để bắt buộc mọi thay đổi API từ nay phải kèm Swagger + Postman:
+- **Swagger**: cài `@nestjs/swagger@^8` (bản tương thích Nest 10, không dùng bản 11/12 vì yêu cầu Nest 11+). `main.ts` mount `SwaggerModule` tại `/api/docs` (JSON tại `/api/docs-json`) chỉ khi `NODE_ENV !== 'production'`. Thêm `@ApiTags/@ApiOperation/@ApiResponse/@ApiCookieAuth` cho toàn bộ 8 endpoint public và `@ApiProperty` cho `RegisterDto/LoginDto/LinkLocalDto`. Endpoint `POST /auth/telegram/webhook` dùng `@ApiExcludeEndpoint()` vì đây là Telegram Bot API gọi vào (không phải contract cho client của mình), không phải thiếu sót.
+- **Postman**: `backend/postman/margin-trading-auth.postman_collection.json`, 3 folder (`auth`, `account-link`, `telegram`) khớp đúng 9 route thật (kể cả `webhook`, đưa vào để test thủ công dù exclude khỏi Swagger). Request POST cần CSRF có `prerequest` script tự gọi `GET /auth/csrf-token` lấy token mới ngay trước khi gửi (đúng hành vi thật: `login` gọi `regenerateSession` nên token cũ từ session trước sẽ bị 403 nếu tái dùng).
+- **Bằng chứng đã tự chạy lại để xác minh** (Postgres thật qua `docker compose up -d postgres` + `prisma migrate deploy`, backend chạy thật bằng `npm run start`, verify bằng `newman run backend/postman/margin-trading-auth.postman_collection.json`): toàn bộ flow `csrf-token → register → login → me → logout`, `telegram/start → telegram/status/:code` (PENDING), `account-link/local` (401 đúng khi chưa đăng nhập) trả đúng status code như Swagger doc mô tả. `webhook` trả 401 khi thiếu secret header (đúng thiết kế, không test được CLAIMED thật vì cần bot Telegram thật — thuộc QA gate, xem mục "Việc còn lại" #4).
+- Do cần chạy migration thật để verify Swagger response chính xác, đã tiện thể hoàn tất mục 1 của "Việc còn lại" bên dưới (xem `docs/DATABASE.md`, 6 bảng user-authentication đã IMPLEMENTED).
 
 ## Backend (`backend/`, NestJS + Prisma)
 Cấu trúc module đúng theo architecture: `PrismaModule`, `AuthConfigModule`, `SessionStoreModule` (custom `PrismaSessionStore`), `CsrfModule` (csrf-sync), `RateLimitModule` (@nestjs/throttler), `LocalCredentialModule` (argon2id), `TelegramBotModule` (gọi thẳng Bot API qua `fetch`, không dùng bot framework), `AccountLinkModule`, `AuditModule`, `AuthModule`.
@@ -54,9 +61,9 @@ Không có sai lệch integration nào giữa 2 phần cần sửa.
 **Chưa làm được**: chưa có integration test thật nối 2 phần qua HTTP (cần backend chạy thật với DB), chưa test cookie `httpOnly/secure/sameSite` qua trình duyệt thật.
 
 ## Việc còn lại trước khi implementation_status = READY
-1. Có Postgres thật (local hoặc Docker) → chạy `prisma migrate deploy`, xác nhận migration áp dụng thành công → cập nhật `docs/DATABASE.md` 6 bảng từ PLANNED sang IMPLEMENTED (coordinator làm, không phải backend-agent).
-2. Viết + chạy integration test thật (backend, chạm DB) và Supertest cho tầng HTTP.
-3. Chạy 2 server thật (backend + frontend) nối với nhau, xác nhận luồng thật: register/login set cookie đúng, CSRF round-trip đúng.
+1. ~~Có Postgres thật (local hoặc Docker) → chạy `prisma migrate deploy`~~ **XONG 2026-09-29**: `docker compose up -d postgres` + `prisma migrate deploy` áp dụng migration `20260929000000_init` thành công lên Postgres thật; `docs/DATABASE.md` đã cập nhật 6 bảng PLANNED → IMPLEMENTED.
+2. Viết + chạy integration test thật (backend, chạm DB) và Supertest cho tầng HTTP. (Đã verify thủ công qua Postman/newman ở mục "API documentation" nhưng đó không thay thế test tự động trong CI.)
+3. Chạy 2 server thật (backend + frontend) nối với nhau, xác nhận luồng thật: register/login set cookie đúng, CSRF round-trip đúng. (Đã verify riêng phần backend qua Postman/newman; chưa verify cùng frontend thật.)
 4. RISK-A03 (kế thừa, chưa mitigate): manual smoke test với bot Telegram thật (BotFather) + webhook HTTPS công khai — thuộc QA gate, không phải backend/frontend-agent.
 5. Quyết định `npm audit` fix trước hay sau production.
 
