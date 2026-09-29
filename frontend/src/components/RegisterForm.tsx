@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { ApiError, register } from '../api/authClient';
+import { Button, InlineAlert, TextField } from './common';
 
 interface RegisterFormProps {
   onRegistered: () => void;
@@ -35,25 +36,26 @@ export function RegisterForm({ onRegistered }: RegisterFormProps) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <label>
-        Email
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </label>
-      <label>
-        Password
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          minLength={MIN_PASSWORD_LENGTH}
-          required
-        />
-      </label>
+      <TextField
+        label="Email"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+      <TextField
+        label="Password"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        minLength={MIN_PASSWORD_LENGTH}
+        required
+      />
       <p>Password tối thiểu {MIN_PASSWORD_LENGTH} ký tự.</p>
-      {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={submitting}>
+      {error && <InlineAlert>{error}</InlineAlert>}
+      <Button type="submit" disabled={submitting}>
         Đăng ký
-      </button>
+      </Button>
     </form>
   );
 }

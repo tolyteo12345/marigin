@@ -2,7 +2,7 @@
   "feature": "binance-read-only-connection",
   "contract_version": 1,
   "owner": "coordinator",
-  "updated_at": "2026-09-29T01:00:00Z",
+  "updated_at": "2026-09-29T19:30:00Z",
   "stage": "ARCHITECTURE",
   "requirement_status": "READY",
   "ba_status": "APPROVED_WITH_CONDITIONS",
@@ -39,6 +39,10 @@
     "qa": {
       "path": "qa/binance-read-only-connection.md",
       "revision": null
+    },
+    "design": {
+      "path": "design/binance-read-only-connection.md",
+      "revision": null
     }
   },
   "blockers": [
@@ -46,7 +50,9 @@
       "id": "BLOCKER-ARCH-001",
       "description": "Feature giả định có session xác thực người dùng (req.user.id đáng tin cậy cho ownership check) nhưng repository chưa có bất kỳ feature user-authentication nào. Architecture thiết kế contract độc lập với cơ chế auth cụ thể nhưng KHÔNG tự xây auth để tránh mở rộng scope ngoài yêu cầu.",
       "owner": "coordinator + product + user",
-      "affected_gates": ["IMPLEMENTATION"],
+      "affected_gates": [
+        "IMPLEMENTATION"
+      ],
       "status": "OPEN",
       "evidence": "architecture/binance-read-only-connection.md mục Gate check và scope + Open decisions và readiness"
     }
@@ -56,7 +62,10 @@
       "id": "OQ-R01",
       "description": "Endpoint/field Binance chính xác để xác minh account mode là Cross Margin Classic (phân biệt Isolated Margin/Spot).",
       "owner": "ba-feasibility-agent",
-      "affected_gates": ["BA_FEASIBILITY", "ARCHITECTURE"],
+      "affected_gates": [
+        "BA_FEASIBILITY",
+        "ARCHITECTURE"
+      ],
       "status": "RESOLVED",
       "evidence": "analysis/binance-read-only-connection-feasibility.md EV-001/EV-002: GET /sapi/v1/margin/account, field accountType = MARGIN_1 (Classic) / MARGIN_2 (Pro); Isolated Margin dùng endpoint khác hẳn."
     },
@@ -64,7 +73,10 @@
       "id": "OQ-R02",
       "description": "Binance API có expose permission scope (trading/withdraw enabled) của key qua endpoint nào để phát hiện permission-too-broad không?",
       "owner": "ba-feasibility-agent",
-      "affected_gates": ["BA_FEASIBILITY", "ARCHITECTURE"],
+      "affected_gates": [
+        "BA_FEASIBILITY",
+        "ARCHITECTURE"
+      ],
       "status": "RESOLVED",
       "evidence": "analysis/binance-read-only-connection-feasibility.md EV-003: GET /sapi/v1/account/apiRestrictions trả enableReading/enableMargin/enableSpotAndMarginTrading/enableWithdrawals/... Điều kiện fallback fail-closed nếu call này lỗi ghi ở COND-003."
     },
@@ -72,7 +84,9 @@
       "id": "OQ-R03",
       "description": "Cho phép nhiều connection trùng cùng 1 Binance account/user hay giới hạn 1 connection/account?",
       "owner": "product + user",
-      "affected_gates": ["ARCHITECTURE"],
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
       "status": "OPEN",
       "evidence": null
     },
@@ -80,7 +94,9 @@
       "id": "OQ-R04",
       "description": "Có cần background re-verify định kỳ để phát hiện permission thay đổi/key revoke không (ảnh hưởng scope, không chặn MVP on-demand read)?",
       "owner": "product + ba + user",
-      "affected_gates": ["ARCHITECTURE"],
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
       "status": "OPEN",
       "evidence": null
     },
@@ -88,7 +104,9 @@
       "id": "OQ-R05",
       "description": "Binance có Margin sandbox/testnet thật sự hỗ trợ Cross Margin không, hay chỉ Spot testnet?",
       "owner": "ba-feasibility-agent",
-      "affected_gates": ["BA_FEASIBILITY"],
+      "affected_gates": [
+        "BA_FEASIBILITY"
+      ],
       "status": "RESOLVED",
       "evidence": "analysis/binance-read-only-connection-feasibility.md EV-004: testnet.binance.vision chỉ hỗ trợ /api (Spot), không hỗ trợ /sapi (Margin). Không có Margin sandbox chính thức."
     }
@@ -108,7 +126,9 @@
       "id": "COND-001",
       "description": "Lấy sample response thật (hoặc fixture sát tài liệu chính thức) cho GET /sapi/v1/margin/account và GET /sapi/v1/account/apiRestrictions trước khi chốt schema lưu trữ số liệu (định dạng string/decimal, đầy đủ field).",
       "owner": "architect-agent",
-      "affected_gates": ["ARCHITECTURE"],
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
       "due_gate": "ARCHITECTURE",
       "status": "RESOLVED",
       "evidence": "architecture/binance-read-only-connection.md: Prisma schema dùng đúng field theo EV-001/EV-003; manual smoke test bắt buộc trước QA DONE để xác nhận thực tế (RISK-001 mitigation), ghi evidence tại qa/binance-read-only-connection.md khi tới gate đó."
@@ -117,7 +137,9 @@
       "id": "COND-002",
       "description": "Thiết kế rõ 2 nhánh lỗi khác nhau cho AC-003: (a) accountType=MARGIN_2 (Cross Margin Pro, không hỗ trợ) và (b) tài khoản chưa mở Cross Margin (endpoint lỗi) — không gộp chung thành một thông báo lỗi.",
       "owner": "architect-agent",
-      "affected_gates": ["ARCHITECTURE"],
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
       "due_gate": "ARCHITECTURE",
       "status": "RESOLVED",
       "evidence": "architecture/binance-read-only-connection.md: ConnectionStatus.UNSUPPORTED_ACCOUNT_MODE với 2 lastError message riêng biệt theo state machine."
@@ -126,7 +148,9 @@
       "id": "COND-003",
       "description": "Thiết kế fallback fail-closed khi GET /sapi/v1/account/apiRestrictions lỗi/không xác định được permission scope: hiển thị 'không xác định được permission', không mặc định coi là an toàn.",
       "owner": "architect-agent",
-      "affected_gates": ["ARCHITECTURE"],
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
       "due_gate": "ARCHITECTURE",
       "status": "RESOLVED",
       "evidence": "architecture/binance-read-only-connection.md: field permissionUnknown boolean fail-closed, UI banner riêng khi true."
@@ -175,6 +199,14 @@
       "transition": "ARCHITECTURE (READY, không đổi stage) — editorial: docs/DATABASE.md userId FK cụ thể sau khi user-authentication ARCHITECTURE READY",
       "reason": "architecture/user-authentication.md đạt READY, thiết kế contract req.user.id (uuid, session-based) khớp chính xác giả định BLOCKER-ARCH-001 của architecture/binance-read-only-connection.md (cookie session + CSRF + req.user.id đáng tin cậy). Không có thay đổi nội dung/thiết kế của architecture/binance-read-only-connection.md nên revision giữ nguyên (sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210) — chỉ cập nhật ghi chú docs/DATABASE.md: BinanceConnection.userId từ 'chưa xác định chính xác' thành FK cụ thể tới User.id (uuid) của feature user-authentication. BLOCKER-ARCH-001 vẫn OPEN ở decision này cho tới khi coordinator/user quyết định dispatch backend-agent cho user-authentication trước binance-read-only-connection.",
       "evidence": "docs/DATABASE.md mục BinanceConnection (ghi chú userId) + architecture/user-authentication.md sha256:7385ccb24b24f3ae9296c25e63171f16f28c5b2c466c63ec15f813906fa1003e; features/user-authentication/decision.json"
+    },
+    {
+      "timestamp": "2026-09-29T19:30:00Z",
+      "actor": "coordinator",
+      "transition": "ARCHITECTURE (READY, không đổi stage) — thêm design_status vào contract",
+      "reason": "Thêm design-agent vào workflow (song song architect-agent) theo yêu cầu user; feature này có UI (xem requirements/architecture) nên cần design_status thay vì NOT_APPLICABLE. Chưa dispatch design-agent, chỉ khởi tạo field trong contract.",
+      "evidence": "agents/design/SYSTEM.md (mới); AGENTS.md mục Vai trò; workflows/feature-development.md (stage DESIGN)"
     }
-  ]
+  ],
+  "design_status": "NOT_STARTED"
 }

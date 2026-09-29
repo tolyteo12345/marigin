@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { logout } from '../api/authClient';
+import { Button, InlineAlert } from './common';
 
 interface LogoutButtonProps {
   onLoggedOut: () => void;
@@ -24,10 +25,10 @@ export function LogoutButton({ onLoggedOut }: LogoutButtonProps) {
 
   return (
     <div>
-      <button type="button" onClick={() => void handleClick()}>
+      <Button variant="secondary" onClick={() => void handleClick()}>
         Đăng xuất
-      </button>
-      {error && <p role="alert">{error}</p>}
+      </Button>
+      {error && <InlineAlert>{error}</InlineAlert>}
     </div>
   );
 }

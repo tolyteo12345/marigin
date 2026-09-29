@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError, linkLocal, me } from '../api/authClient';
 import type { MeResponse } from '../api/types';
+import { Button, InlineAlert, InlineStatus, TextField } from './common';
 import { TelegramLoginButton } from './TelegramLoginButton';
 
 // Shown only while logged in. Fetches GET /api/auth/me and offers the
@@ -46,7 +47,7 @@ export function AccountLinkPanel() {
   }
 
   if (loadError) {
-    return <p role="alert">{loadError}</p>;
+    return <InlineAlert>{loadError}</InlineAlert>;
   }
 
   if (!status) {
@@ -67,28 +68,24 @@ export function AccountLinkPanel() {
 
       {!status.hasLocalCredential && (
         <form onSubmit={handleLinkLocalSubmit}>
-          <label>
-            Email
-            <input
-              type="email"
-              value={linkEmail}
-              onChange={(e) => setLinkEmail(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={linkPassword}
-              onChange={(e) => setLinkPassword(e.target.value)}
-              minLength={8}
-              required
-            />
-          </label>
-          {linkLocalError && <p role="alert">{linkLocalError}</p>}
-          {linkLocalSuccess && <p role="status">Đã thêm email + password.</p>}
-          <button type="submit">Thêm email + password</button>
+          <TextField
+            label="Email"
+            type="email"
+            value={linkEmail}
+            onChange={(e) => setLinkEmail(e.target.value)}
+            required
+          />
+          <TextField
+            label="Password"
+            type="password"
+            value={linkPassword}
+            onChange={(e) => setLinkPassword(e.target.value)}
+            minLength={8}
+            required
+          />
+          {linkLocalError && <InlineAlert>{linkLocalError}</InlineAlert>}
+          {linkLocalSuccess && <InlineStatus>Đã thêm email + password.</InlineStatus>}
+          <Button type="submit">Thêm email + password</Button>
         </form>
       )}
     </div>

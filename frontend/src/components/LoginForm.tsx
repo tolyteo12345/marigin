@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { login } from '../api/authClient';
+import { Button, InlineAlert, TextField } from './common';
 import { TelegramLoginButton } from './TelegramLoginButton';
 
 // Fixed neutral message per BR-010/AC-004: never distinguish "wrong email" vs
@@ -38,10 +39,11 @@ export function LoginForm({ onLoggedIn }: LoginFormProps) {
 
   return (
     <div>
-      <div role="tablist">
+      <div className="tabs" role="tablist">
         <button
           type="button"
           role="tab"
+          className="tab"
           aria-selected={activeTab === 'password'}
           onClick={() => setActiveTab('password')}
         >
@@ -50,6 +52,7 @@ export function LoginForm({ onLoggedIn }: LoginFormProps) {
         <button
           type="button"
           role="tab"
+          className="tab"
           aria-selected={activeTab === 'telegram'}
           onClick={() => setActiveTab('telegram')}
         >
@@ -59,28 +62,24 @@ export function LoginForm({ onLoggedIn }: LoginFormProps) {
 
       {activeTab === 'password' && (
         <form onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
-          {error && <p role="alert">{error}</p>}
-          <button type="submit" disabled={submitting}>
+          <TextField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <TextField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {error && <InlineAlert>{error}</InlineAlert>}
+          <Button type="submit" disabled={submitting}>
             Đăng nhập
-          </button>
+          </Button>
         </form>
       )}
 
