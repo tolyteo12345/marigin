@@ -1,0 +1,50 @@
+{
+  "feature": "<feature>",
+  "contract_version": 1,
+  "owner": "<coordinator>",
+  "updated_at": null,
+  "stage": "IDEA",
+  "requirement_status": "NOT_STARTED",
+  "ba_status": "NOT_STARTED",
+  "architecture_status": "NOT_STARTED",
+  "implementation_status": "NOT_STARTED",
+  "review_status": "NOT_STARTED",
+  "qa_status": "NOT_STARTED",
+  "implementation_authorized": false,
+  "implementation_authorization_evidence": null,
+  "implementation_revision": null,
+  "reviewed_revision": null,
+  "qa_revision": null,
+  "artifacts": {
+    "requirement": {
+      "path": "requirements/<feature>.md",
+      "revision": null
+    },
+    "ba": {
+      "path": "analysis/<feature>-feasibility.md",
+      "revision": null
+    },
+    "architecture": {
+      "path": "architecture/<feature>.md",
+      "revision": null
+    },
+    "implementation": {
+      "path": "features/<feature>/implementation.md",
+      "revision": null
+    },
+    "review": {
+      "path": "features/<feature>/review.md",
+      "revision": null
+    },
+    "qa": {
+      "path": "qa/<feature>.md",
+      "revision": null
+    }
+  },
+  "blockers": [],
+  "open_questions": [],
+  "risks": [],
+  "conditions": [],
+  "warnings": [],
+  "history": []
+}

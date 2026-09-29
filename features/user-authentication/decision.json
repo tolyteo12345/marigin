@@ -1,0 +1,291 @@
+{
+  "feature": "user-authentication",
+  "contract_version": 1,
+  "owner": "coordinator",
+  "updated_at": "2026-09-29T04:30:00Z",
+  "stage": "IMPLEMENTATION",
+  "requirement_status": "READY",
+  "ba_status": "APPROVED_WITH_CONDITIONS",
+  "architecture_status": "READY",
+  "implementation_status": "IN_PROGRESS",
+  "review_status": "NOT_STARTED",
+  "qa_status": "NOT_STARTED",
+  "implementation_authorized": true,
+  "implementation_authorization_evidence": "User instruction 2026-09-29: \"implement\" — explicit yêu cầu bắt đầu implementation, gửi sau khi đã xem architecture/user-authentication.md (mở trong IDE) và sau khi mọi OQ-A05..A10 đã RESOLVED, không còn blocker/open question nghiệp vụ ảnh hưởng thiết kế.",
+  "implementation_revision": "sha256:95e24437f7103dcbc40d2c98f92483a5926d53cb2321032352d8924137e0c9f6",
+  "reviewed_revision": null,
+  "qa_revision": null,
+  "artifacts": {
+    "requirement": {
+      "path": "requirements/user-authentication.md",
+      "revision": "sha256:1702d36a21ab7c886ad4287355ae3f2abd39a7484317783c4b7d27042638883e"
+    },
+    "ba": {
+      "path": "analysis/user-authentication-feasibility.md",
+      "revision": "sha256:f5e8a021b4023d2df33751ff8ef324e1a554d444a22fc5eebb6f30b4ab9c0982"
+    },
+    "architecture": {
+      "path": "architecture/user-authentication.md",
+      "revision": "sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b"
+    },
+    "implementation": {
+      "path": "features/user-authentication/implementation.md",
+      "revision": "sha256:95e24437f7103dcbc40d2c98f92483a5926d53cb2321032352d8924137e0c9f6"
+    },
+    "review": {
+      "path": "features/user-authentication/review.md",
+      "revision": null
+    },
+    "qa": {
+      "path": "qa/user-authentication.md",
+      "revision": null
+    }
+  },
+  "blockers": [],
+  "open_questions": [
+    {
+      "id": "OQ-A05",
+      "description": "Có bắt buộc xác thực email (email verification) trước khi cho phép login/link bằng local credential không?",
+      "owner": "product + user",
+      "affected_gates": ["IMPLEMENTATION"],
+      "status": "RESOLVED",
+      "evidence": "User quyết định 2026-09-29: KHÔNG bắt buộc ở MVP. requirements/user-authentication.md BR-014 (r3)."
+    },
+    {
+      "id": "OQ-A06",
+      "description": "Thời hạn session cụ thể (rolling/absolute, giá trị chính xác)?",
+      "owner": "product + user",
+      "affected_gates": ["IMPLEMENTATION"],
+      "status": "RESOLVED",
+      "evidence": "User quyết định 2026-09-29: rolling 7 ngày, tuyệt đối 30 ngày. requirements/user-authentication.md BR-011 (r3); architecture/user-authentication.md mục Session TTL."
+    },
+    {
+      "id": "OQ-A07",
+      "description": "Ngưỡng rate-limit/lockout brute-force cụ thể (số lần thử, cửa sổ thời gian, thời lượng khoá theo account)?",
+      "owner": "product + user + ba-feasibility-agent",
+      "affected_gates": ["IMPLEMENTATION"],
+      "status": "RESOLVED",
+      "evidence": "User quyết định 2026-09-29: 5 lần sai / 15 phút, khoá 15 phút. requirements/user-authentication.md BR-010 (r3)."
+    },
+    {
+      "id": "OQ-A08",
+      "description": "Chính sách độ phức tạp password tối thiểu?",
+      "owner": "product + user",
+      "affected_gates": ["IMPLEMENTATION"],
+      "status": "RESOLVED",
+      "evidence": "User quyết định 2026-09-29: tối thiểu 8 ký tự, không ép ký tự đặc biệt (NIST 800-63B). requirements/user-authentication.md BR-015 (r3)."
+    },
+    {
+      "id": "OQ-A09",
+      "description": "Có cần luồng \"quên mật khẩu\" (reset qua email) trong MVP không? Nếu không, user mất local credential chưa link Telegram sẽ mất quyền truy cập vĩnh viễn.",
+      "owner": "product + user",
+      "affected_gates": ["IMPLEMENTATION"],
+      "status": "RESOLVED",
+      "evidence": "User quyết định 2026-09-29: không cần ở MVP, chấp nhận RISK-A02. requirements/user-authentication.md BR-016 (r3)."
+    },
+    {
+      "id": "OQ-A10",
+      "description": "Ai là người tạo/sở hữu bot Telegram (qua BotFather) và quản lý bot token? Cần xác nhận trước khi cấu hình webhook thật.",
+      "owner": "product + user",
+      "affected_gates": ["IMPLEMENTATION"],
+      "status": "RESOLVED",
+      "evidence": "User instruction 2026-09-29: user tự tạo bot qua BotFather và tự quản lý TELEGRAM_BOT_TOKEN/TELEGRAM_BOT_USERNAME/TELEGRAM_WEBHOOK_SECRET_TOKEN/TELEGRAM_WEBHOOK_URL qua biến môi trường (.env, không commit), khớp COND-A05 của architecture/user-authentication.md."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-A01",
+      "description": "(Đã đóng do đổi thiết kế) Telegram đã archive tài liệu Login Widget cổ điển (HMAC verify) và giới thiệu luồng OpenID Connect mới. Rủi ro này gắn với cơ chế Login Widget đã bị loại bỏ khỏi requirement/architecture kể từ r2.",
+      "owner": "product + user",
+      "status": "RESOLVED",
+      "mitigation": "User yêu cầu đổi cơ chế Telegram sang bot deep-link (/start <code>), không còn phụ thuộc Login Widget cổ điển — rủi ro không còn áp dụng cho thiết kế hiện tại.",
+      "accepted_by": null
+    },
+    {
+      "id": "RISK-A02",
+      "description": "MVP không có luồng \"quên mật khẩu\". User chỉ có local credential (chưa link Telegram) mà quên password sẽ mất quyền truy cập vĩnh viễn qua đường đăng nhập local.",
+      "owner": "product + user",
+      "status": "ACCEPTED",
+      "mitigation": "User đã chấp nhận residual risk này (2026-09-29) thay vì bổ sung scope forgot-password. Ghi nhận BR-016 trong requirements/user-authentication.md (r3).",
+      "accepted_by": "user (2026-09-29)"
+    },
+    {
+      "id": "RISK-A03",
+      "description": "Luồng Telegram (bot deep-link) cần 1 bot Telegram thật (đăng ký qua BotFather) với webhook trỏ về domain HTTPS công khai để chạy end-to-end và test thật — chưa có bot/hạ tầng thật thì chỉ test được bằng fixture giả lập webhook.",
+      "owner": "user",
+      "status": "OPEN",
+      "mitigation": "User sẽ tự tạo bot + quản lý token qua env (OQ-A10 resolved). Manual smoke test với bot thật vẫn cần thực hiện trước khi coi DONE, evidence ghi ở qa/user-authentication.md.",
+      "accepted_by": null
+    }
+  ],
+  "conditions": [
+    {
+      "id": "COND-A01",
+      "description": "Chọn thư viện CSRF cụ thể còn được duy trì (không dùng csurf đã deprecated/archived), ghi rõ lý do trong architecture.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/user-authentication.md: chọn csrf-sync (Synchronizer Token Pattern), lý do khớp session-based design; csurf loại bỏ theo EV-005."
+    },
+    {
+      "id": "COND-A02",
+      "description": "Chọn session store production-grade thay MemoryStore (Postgres/Prisma-backed), ghi rõ cơ chế logout = xoá session record.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/user-authentication.md: model Session + custom PrismaSessionStore implement express-session Store interface; logout = req.session.destroy() xoá row ngay."
+    },
+    {
+      "id": "COND-A03",
+      "description": "Chốt tham số Argon2id cụ thể (memory/iterations/parallelism) dùng baseline OWASP làm điểm khởi đầu.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/user-authentication.md: argon2id, 64 MiB / iterations 3 / parallelism 1."
+    },
+    {
+      "id": "COND-A04",
+      "description": "Thiết kế schema với email verification là optional/nullable field không chặn cấu trúc dù OQ-A05 chưa chốt.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/user-authentication.md: LocalCredential.emailVerifiedAt DateTime? nullable."
+    },
+    {
+      "id": "COND-A05",
+      "description": "Thiết kế webhook nhận update Telegram phải verify header X-Telegram-Bot-Api-Secret-Token trước khi xử lý; bot token/webhook secret token qua secret manager/env, không hardcode.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/user-authentication.md mục 'Telegram webhook trust boundary' + API contracts POST /api/auth/telegram/webhook."
+    },
+    {
+      "id": "COND-A06",
+      "description": "Thiết kế code deep-link: entropy đủ cao, single-use, có hạn, gắn với session đã sinh ra nó để chống bên thứ ba biết code claim hộ.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/user-authentication.md: TelegramLoginRequest.code = base64url(crypto.randomBytes(32)), expiresAt 300s, initiatorSessionSid bind, atomic state machine PENDING->CONFIRMED->CLAIMED."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "WARN-A01",
+      "description": "backend/ npm audit: 22 vulnerabilities (4 low/11 moderate/7 high) từ transitive dependencies của NestJS CLI/schematics toolchain (devDependencies, không phải runtime). Chưa fix.",
+      "severity": "medium",
+      "accepted_by": null
+    },
+    {
+      "id": "WARN-A02",
+      "description": "backend/package.json có cookie-parser/@types/cookie-parser nhưng không dùng trong code (express-session tự quản cookie) — dependency thừa, nên gỡ khi dọn dẹp.",
+      "severity": "low",
+      "accepted_by": null
+    }
+  ],
+  "history": [
+    {
+      "timestamp": "2026-09-29T02:00:00Z",
+      "actor": "coordinator",
+      "transition": "INIT -> IDEA",
+      "reason": "Tách feature user-authentication từ BLOCKER-ARCH-001 của architecture/binance-read-only-connection.md (feature đó giả định req.user.id/cookie session/CSRF nhưng repo chưa có auth). User yêu cầu chạy đầy đủ workflow trước khi backend-agent implement binance-read-only-connection. Quyết định nghiệp vụ đã chốt trước bởi user: 2 phương thức đăng nhập (email+password, Telegram Login Widget), không auto-merge identity, liên kết tài khoản chỉ qua thao tác thủ công.",
+      "evidence": "User instruction 2026-09-29 (pasted brief); architecture/binance-read-only-connection.md mục 'Open decisions và readiness' BLOCKER-ARCH-001."
+    },
+    {
+      "timestamp": "2026-09-29T02:10:00Z",
+      "actor": "coordinator (product-requirement-agent role)",
+      "transition": "IDEA -> REQUIREMENT (requirement_status READY, r1)",
+      "reason": "Viết requirements/user-authentication.md cho cả 2 luồng đăng nhập + luồng liên kết tài khoản thủ công (AC-007/AC-008 riêng cho 2 chiều link), đủ contract cho binance-read-only-connection (req.user.id, cookie session, CSRF). Giữ nguyên quyết định nghiệp vụ đã chốt (BR-001..BR-004), không tự thêm OAuth/SSO/2FA. Ghi rõ OQ-A05..A09 là quyết định nghiệp vụ user phải chốt, không tự chọn.",
+      "evidence": "requirements/user-authentication.md sha256:02231c6377d2e4467c14923da15c160d5926a5996bdcc44b5440f9e48d6389f9 (r1, đã thay thế)"
+    },
+    {
+      "timestamp": "2026-09-29T02:20:00Z",
+      "actor": "coordinator (ba-feasibility-agent role)",
+      "transition": "REQUIREMENT -> BA_FEASIBILITY (ba_status APPROVED_WITH_CONDITIONS, dựa trên r1)",
+      "reason": "Xác minh bằng tài liệu chính thức: OWASP Password Storage, argon2, NestJS session, csurf deprecated + csrf-sync, @nestjs/throttler, Telegram Login Widget legacy verify (HMAC + auth_date), phát hiện Telegram archive widget cổ điển (RISK-A01, không chặn vì user đã minh thị chọn widget lúc đó). COND-A01..A04 due ARCHITECTURE.",
+      "evidence": "analysis/user-authentication-feasibility.md sha256:4abf1c299d78c9cb5db7150a7a3b100f5ff0e806692617321f36dbfe82e38ba7 (dựa trên r1, đã thay thế)"
+    },
+    {
+      "timestamp": "2026-09-29T02:30:00Z",
+      "actor": "coordinator (architect-agent role)",
+      "transition": "BA_FEASIBILITY -> ARCHITECTURE (architecture_status READY, dựa trên r1)",
+      "reason": "Thiết kế module NestJS + schema Prisma dựa trên Telegram Login Widget (HMAC verify). Đối chiếu ngược binance-read-only-connection: req.user.id/cookie session khớp chính xác BLOCKER-ARCH-001. Cập nhật docs/DATABASE.md lần đầu cho User/LocalCredential/TelegramIdentity/Session/AuthAuditLog.",
+      "evidence": "architecture/user-authentication.md sha256:7385ccb24b24f3ae9296c25e63171f16f28c5b2c466c63ec15f813906fa1003e (dựa trên r1, đã thay thế)"
+    },
+    {
+      "timestamp": "2026-09-29T03:10:00Z",
+      "actor": "coordinator",
+      "transition": "ARCHITECTURE -> REQUIREMENT (invalidate: ba_status/architecture_status reset NOT_STARTED)",
+      "reason": "User yêu cầu đổi cơ chế đăng nhập Telegram: không dùng Login Widget (HMAC verify) nữa, chuyển sang bot deep-link — user bấm nút, mở Telegram, gõ/bấm /start <code>, cần tạo 1 bot Telegram riêng của platform. Đây là thay đổi nội dung requirement (BR-001/BR-009 và các AC/edge-case liên quan Telegram) → theo quy tắc Invalidation của workflows/feature-development.md, BA và architecture reset NOT_STARTED, giữ nguyên phần local password/session/CSRF không đổi. User cũng yêu cầu bổ sung quy ước ngôn ngữ làm việc (trả lời/tài liệu tiếng Việt, code comment tiếng Anh) — đã thêm vào AGENTS.md, không thuộc phạm vi decision.json của feature này.",
+      "evidence": "User instruction 2026-09-29 (yêu cầu đổi Telegram login sang bot /start + rule ngôn ngữ); AGENTS.md mục 'Ngôn ngữ làm việc' (thêm mới)."
+    },
+    {
+      "timestamp": "2026-09-29T03:15:00Z",
+      "actor": "coordinator (product-requirement-agent role)",
+      "transition": "REQUIREMENT r1 -> REQUIREMENT r2 (requirement_status READY)",
+      "reason": "Cập nhật requirements/user-authentication.md: BR-001/BR-003/BR-009 đổi sang mô tả cơ chế bot deep-link; US-003 cập nhật; AC-005/AC-006/AC-007 viết lại, thêm AC-005b (code hết hạn/dùng lại) và AC-005c (chống hijack code qua session khác); scope bổ sung 'tạo và vận hành 1 Telegram bot'; edge cases bổ sung (webhook giả mạo, code reuse, mất mạng giữa CONFIRMED/CLAIM); open questions thêm OQ-A10 (ai sở hữu bot). Giữ nguyên toàn bộ phần local password/session/CSRF/link-local không đổi.",
+      "evidence": "requirements/user-authentication.md r2-2026-09-29 sha256:0852040727a2f7145bf8462c40fe0b2bc61eaff5c10ffdf8f9dfbb003d8dccfa"
+    },
+    {
+      "timestamp": "2026-09-29T03:20:00Z",
+      "actor": "coordinator (ba-feasibility-agent role)",
+      "transition": "REQUIREMENT r2 -> BA_FEASIBILITY (ba_status APPROVED_WITH_CONDITIONS, dựa trên r2)",
+      "reason": "Xác minh lại bằng tài liệu chính thức Telegram Bot API (không dùng trí nhớ): deep linking (t.me/<bot>?start=<payload>, ràng buộc ký tự/64 ký tự), cấu trúc Update/Message/User (dữ liệu do Telegram server điền, không phải client-supplied nên không cần HMAC), setWebhook + secret_token header (X-Telegram-Bot-Api-Secret-Token) để xác thực webhook thật. Xác nhận RISK-A01 (Login Widget archived) KHÔNG CÒN ÁP DỤNG vì đã đổi cơ chế. Đánh giá thư viện bot (telegraf) lệch pha GitHub/npm, đề xuất gọi thẳng Bot API qua fetch thay vì thêm dependency cho bề mặt dùng nhỏ. Thêm COND-A05 (verify secret token webhook), COND-A06 (code entropy/single-use/session-binding), RISK-A03 (cần bot thật để smoke test) và OQ-A10 (ai sở hữu bot).",
+      "evidence": "analysis/user-authentication-feasibility.md r2 sha256:f5e8a021b4023d2df33751ff8ef324e1a554d444a22fc5eebb6f30b4ab9c0982; evidence register EV-008..EV-011 (deep linking, Update/User object, setWebhook secret_token, telegraf release lag) kiểm tra 2026-09-29"
+    },
+    {
+      "timestamp": "2026-09-29T03:30:00Z",
+      "actor": "coordinator (architect-agent role)",
+      "transition": "BA_FEASIBILITY -> ARCHITECTURE (architecture_status READY, dựa trên r2)",
+      "reason": "Thay `TelegramAuthModule` (HMAC verify) bằng `TelegramBotModule` (boundary duy nhất gọi Telegram Bot API qua HTTPS fetch trực tiếp, không thêm bot framework dependency). Thêm model `TelegramLoginRequest` (code deep-link, state machine PENDING->CONFIRMED->CLAIMED/EXPIRED/REJECTED, atomic UPDATE...WHERE chống race/duplicate webhook delivery, bind initiatorSessionSid chống hijack). Thay 3 endpoint cũ (telegram-callback, link/telegram) bằng `POST /telegram/start`, `GET /telegram/status/:code`, `POST /telegram/webhook` (verify secret token, không CSRF vì không phải browser gọi). Bổ sung quy tắc regenerate session id khi chuyển từ ẩn danh sang đã xác thực (áp dụng cả local login lẫn Telegram claim, phát hiện thêm khi rà lại session design). Cập nhật docs/DATABASE.md: TelegramIdentity bỏ cột photoUrl/firstName not-null (không có sẵn từ Bot API update), thêm bảng TelegramLoginRequest, cập nhật action enum của AuthAuditLog. Giải quyết COND-A05/A06. RISK-A01 đóng (không còn áp dụng); RISK-A02 giữ nguyên; RISK-A03 mới (cần bot thật để smoke test, phụ thuộc OQ-A10). Không tự chuyển IMPLEMENTATION; dừng lại theo yêu cầu user.",
+      "evidence": "architecture/user-authentication.md r2 sha256:3e04d54424f658c56db91df110beaf4d20902b488aa33945d27d0be7ddf63e1d; docs/DATABASE.md mục TelegramIdentity (cập nhật), TelegramLoginRequest (mới), AuthAuditLog (cập nhật action enum)"
+    },
+    {
+      "timestamp": "2026-09-29T03:40:00Z",
+      "actor": "coordinator",
+      "transition": "ARCHITECTURE (READY, không đổi stage) — OQ-A10 RESOLVED",
+      "reason": "User xác nhận tự tạo bot Telegram qua BotFather và tự quản lý bot token/webhook secret token/webhook URL qua biến môi trường (.env, không commit) — không cần feature/vai trò khác sở hữu bot. Không có thay đổi schema/thiết kế nào, chỉ đóng open question vận hành.",
+      "evidence": "User instruction 2026-09-29 xác nhận tự tạo bot + đặt vào env."
+    },
+    {
+      "timestamp": "2026-09-29T03:45:00Z",
+      "actor": "coordinator (product-requirement-agent role)",
+      "transition": "REQUIREMENT r2 -> REQUIREMENT r3 (requirement_status READY) — OQ-A05..A09 RESOLVED",
+      "reason": "User chốt qua AskUserQuestion (2026-09-29): OQ-A05 không bắt buộc email verification, OQ-A06 session rolling 7 ngày/tuyệt đối 30 ngày, OQ-A07 rate-limit 5 lần sai/15 phút khoá 15 phút, OQ-A08 password tối thiểu 8 ký tự không ép ký tự đặc biệt (NIST 800-63B), OQ-A09 không có forgot-password (chấp nhận RISK-A02). Cập nhật requirements/user-authentication.md: BR-010/011/014/015 từ OPEN_QUESTION thành Verified với giá trị cụ thể, thêm BR-016 (forgot-password out-of-scope + risk accepted). Không đổi schema/AC, chỉ điền giá trị cấu hình.",
+      "evidence": "requirements/user-authentication.md r3-2026-09-29 sha256:1702d36a21ab7c886ad4287355ae3f2abd39a7484317783c4b7d27042638883e"
+    },
+    {
+      "timestamp": "2026-09-29T03:50:00Z",
+      "actor": "coordinator (architect-agent role)",
+      "transition": "ARCHITECTURE (READY, dựa trên r3) — điền giá trị cấu hình đã chốt",
+      "reason": "Cập nhật architecture/user-authentication.md: thay các 'default tạm' bằng giá trị cuối — AUTH_LOGIN_MAX_ATTEMPTS=5/AUTH_LOGIN_LOCKOUT_MINUTES=15 (BR-010), session cookie rolling 7 ngày (express-session rolling+maxAge) + absolute cap 30 ngày qua trường loginAt trong Session.data kiểm tra ở AuthGuard (BR-011), bỏ yêu cầu email verification khỏi luồng register/login (BR-014), password validation tối thiểu 8 ký tự (BR-015). Không đổi schema Prisma (đã thiết kế đủ tổng quát từ trước — COND-A04 và tương tự), chỉ cập nhật docs/DATABASE.md ghi chú Session.data/expiresAt cho khớp giá trị TTL cụ thể. RISK-A02 đánh dấu ACCEPTED (accepted_by user). RISK-A03 giữ OPEN (vẫn cần smoke test thật) nhưng không còn phụ thuộc OQ-A10. Đề xuất không còn open question nghiệp vụ nào chặn implementation; vẫn dừng lại chờ user xác nhận chuyển sang IMPLEMENTATION.",
+      "evidence": "architecture/user-authentication.md sha256:c4d6ed2b42747f00b543688f14f231022087a4ee50f1d721f148191429f56f88; docs/DATABASE.md mục Session (cập nhật ghi chú data/expiresAt)"
+    },
+    {
+      "timestamp": "2026-09-29T04:00:00Z",
+      "actor": "coordinator",
+      "transition": "ARCHITECTURE -> IMPLEMENTATION (implementation_authorized=true)",
+      "reason": "User yêu cầu 'implement' — không còn blocker/open question nghiệp vụ ảnh hưởng thiết kế (OQ-A05..A10 đã RESOLVED). Dispatch backend-agent (backend/, NestJS+Prisma) và frontend-agent (frontend/, React) theo đúng architecture/user-authentication.md revision sha256:c4d6ed2b42747f00b543688f14f231022087a4ee50f1d721f148191429f56f88 và requirements r3 sha256:1702d36a21ab7c886ad4287355ae3f2abd39a7484317783c4b7d27042638883e. RISK-A03 (cần bot Telegram thật) chưa mitigate — implementation dùng fixture/mocked webhook cho automated test, manual smoke test với bot thật vẫn cần trước QA DONE.",
+      "evidence": "User instruction 2026-09-29: \"implement\"."
+    },
+    {
+      "timestamp": "2026-09-29T04:15:00Z",
+      "actor": "coordinator",
+      "transition": "IMPLEMENTATION (IN_PROGRESS, không đổi stage) — backend-agent + frontend-agent hoàn tất, editorial fix architecture",
+      "reason": "backend-agent implement đầy đủ 9 endpoint + 6 model Prisma tại backend/, 35 unit test pass (verified lại bởi coordinator, không chỉ tin báo cáo agent), build/typecheck sạch. frontend-agent implement 5 component tại frontend/, 8 test pass (verified lại), build/typecheck sạch. Đối chiếu giả định frontend/backend (header CSRF, response shape /csrf-token, /telegram/status, /me) — khớp hoàn toàn, không cần sửa integration. backend-agent phát hiện mâu thuẫn trong architecture/user-authentication.md dòng 124 (câu mở đầu nói register/login KHÔNG cần CSRF nhưng bảng API lại yêu cầu CSRF cho cả hai) — coordinator xác nhận bảng + thiết kế UI là đúng ý định gốc, sửa câu mở đầu cho khớp (editorial, không đổi thiết kế/behavior; implementation code đã làm đúng theo bảng nên không cần sửa code). Ghi nhận WARN-A01 (npm audit 22 vulnerabilities, devDependencies) và WARN-A02 (cookie-parser thừa) chưa xử lý. Tổng hợp features/user-authentication/implementation.md làm nguồn duy nhất (backend+frontend không tự ghi để tránh overwrite). implementation_status GIỮ IN_PROGRESS (chưa READY) vì chưa có Postgres thật để chạy migration/integration test — xem implementation.md mục 'Việc còn lại'.",
+      "evidence": "features/user-authentication/implementation.md sha256:078cda8afe709ecbded3a3b1b0cdd8525c1895219232d52aacd716f86252f7ff (đã thay thế); architecture/user-authentication.md sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b (editorial fix dòng 124); backend/test (4 suites, 35 tests, verified 2026-09-29); frontend/test (3 files, 8 tests, verified 2026-09-29)"
+    },
+    {
+      "timestamp": "2026-09-29T04:30:00Z",
+      "actor": "coordinator (backend-agent role)",
+      "transition": "IMPLEMENTATION (IN_PROGRESS, không đổi stage) — thêm hạ tầng Docker local dev",
+      "reason": "User yêu cầu tạo môi trường Docker cho backend chạy local. Thêm backend/docker-compose.yml (service postgres:16-alpine, credentials khớp sẵn DATABASE_URL trong .env.example), backend/README.md (hướng dẫn từng bước: db:up, copy .env, prisma:migrate:deploy, prisma:generate, start:dev), script db:up/db:down/prisma:migrate:deploy/prisma:migrate:dev trong package.json. KHÔNG verify được bằng chạy thật trong sandbox này vì Docker daemon không chạy ở đây (docker info fail) — cần user tự docker compose up trên máy họ. Không có thay đổi schema/code nghiệp vụ nào, chỉ thêm tooling local dev.",
+      "evidence": "features/user-authentication/implementation.md sha256:95e24437f7103dcbc40d2c98f92483a5926d53cb2321032352d8924137e0c9f6; backend/docker-compose.yml; backend/README.md"
+    }
+  ]
+}

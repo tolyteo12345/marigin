@@ -1,0 +1,92 @@
+// Prisma schema for feature `user-authentication`.
+// Source of truth: architecture/user-authentication.md (sha256:c4d6ed2b42747f00b543688f14f231022087a4ee50f1d721f148191429f56f88)
+// Do not add/remove fields beyond what that document specifies.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  localCredential  LocalCredential?
+  telegramIdentity TelegramIdentity?
+}
+
+model LocalCredential {
+  id               String    @id @default(uuid())
+  userId           String    @unique // 1 local credential / user at MVP (no multi-email/user)
+  email            String    @unique // login lookup key — no multi-email required
+  passwordHash     String // argon2id encoded string (salt+params embedded in the string, no separate column)
+  emailVerifiedAt  DateTime? // null = not verified; OQ-A05 resolved: verification NOT required at MVP, kept nullable for future
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime? // null = not locked; threshold from AUTH_LOGIN_MAX_ATTEMPTS/AUTH_LOGIN_LOCKOUT_MINUTES env, not hardcoded
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model TelegramIdentity {
+  id               String    @id @default(uuid())
+  userId           String    @unique // 1 Telegram identity / user at MVP
+  telegramUserId   BigInt    @unique // Telegram numeric user id — at most 1 User system-wide (BR-002/BR-004)
+  telegramUsername String?
+  firstName        String?
+  lastName         String?
+  linkedAt         DateTime  @default(now())
+  lastLoginAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// Pending login/link request matched by the bot when the user sends /start <code>.
+// code is the deep-link start-parameter itself (base64url, high entropy, used directly as PK).
+model TelegramLoginRequest {
+  code                String    @id // base64url(crypto.randomBytes(32)) — satisfies Telegram's A-Za-z0-9_- / <=64 char constraint (BA EV-008)
+  purpose             String // LOGIN | LINK
+  linkingUserId       String? // set when purpose=LINK: User.id of the session that was logged in when the request was created
+  initiatorSessionSid String // sid of the session (anonymous or logged in) that generated the code — must match at claim time (AC-005c)
+  status              String    @default("PENDING") // PENDING | CONFIRMED | CLAIMED | EXPIRED | REJECTED
+  telegramUserId      BigInt? // filled when the bot receives a valid /start (status=CONFIRMED)
+  telegramUsername    String?
+  firstName           String?
+  lastName            String?
+  createdAt           DateTime  @default(now())
+  expiresAt           DateTime // createdAt + technical threshold (default 300s, see Concurrency section)
+  confirmedAt         DateTime?
+  claimedAt           DateTime?
+
+  @@index([initiatorSessionSid])
+}
+
+// Custom session store (PrismaSessionStore implements express-session's Store interface).
+// Intentionally not using a small/single-maintainer community package for this simple
+// 3-column schema — reduces supply-chain risk, in exchange the backend owns implementing
+// get/set/destroy/touch correctly against the interface (deliberate simplification, not an oversight).
+model Session {
+  sid       String   @id
+  data      String // JSON.stringify(session payload); contains userId and loginAt once logged in
+  expiresAt DateTime
+
+  @@index([expiresAt]) // for an expired-session cleanup job (on-demand or external cron, out of MVP scope)
+}
+
+model AuthAuditLog {
+  id                   String   @id @default(uuid())
+  userId               String? // null when the user could not be determined (e.g. login with unknown email)
+  action               String // REGISTER_LOCAL | LOGIN_LOCAL_SUCCESS | LOGIN_LOCAL_FAILED | LOGIN_LOCAL_LOCKED | TELEGRAM_LOGIN_REQUEST_CREATED | TELEGRAM_LOGIN_CONFIRMED | TELEGRAM_LOGIN_CLAIMED | TELEGRAM_LOGIN_EXPIRED | TELEGRAM_WEBHOOK_REJECTED | LOGOUT | ACCOUNT_LINK_TELEGRAM | ACCOUNT_LINK_LOCAL | ACCOUNT_LINK_REJECTED | RATE_LIMITED
+  result               String // SUCCESS | FAILURE | REJECTED
+  requestCorrelationId String
+  createdAt            DateTime @default(now())
+  detailsRedacted      Json? // MUST NEVER contain password/passwordHash/session secret/bot token/session id
+
+  @@index([userId])
+}

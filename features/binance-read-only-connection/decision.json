@@ -1,0 +1,180 @@
+{
+  "feature": "binance-read-only-connection",
+  "contract_version": 1,
+  "owner": "coordinator",
+  "updated_at": "2026-09-29T01:00:00Z",
+  "stage": "ARCHITECTURE",
+  "requirement_status": "READY",
+  "ba_status": "APPROVED_WITH_CONDITIONS",
+  "architecture_status": "READY",
+  "implementation_status": "NOT_STARTED",
+  "review_status": "NOT_STARTED",
+  "qa_status": "NOT_STARTED",
+  "implementation_authorized": false,
+  "implementation_authorization_evidence": null,
+  "implementation_revision": null,
+  "reviewed_revision": null,
+  "qa_revision": null,
+  "artifacts": {
+    "requirement": {
+      "path": "requirements/binance-read-only-connection.md",
+      "revision": "sha256:169ac1c4dd000a187ecfcd150e43f8d0a74b752c485782e51b87418d25f213dc"
+    },
+    "ba": {
+      "path": "analysis/binance-read-only-connection-feasibility.md",
+      "revision": "sha256:961ccc45e0427776c8ffec1d3b474f9aee0000b9f618656d7d546ee5548b3ba7"
+    },
+    "architecture": {
+      "path": "architecture/binance-read-only-connection.md",
+      "revision": "sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210"
+    },
+    "implementation": {
+      "path": "features/binance-read-only-connection/implementation.md",
+      "revision": null
+    },
+    "review": {
+      "path": "features/binance-read-only-connection/review.md",
+      "revision": null
+    },
+    "qa": {
+      "path": "qa/binance-read-only-connection.md",
+      "revision": null
+    }
+  },
+  "blockers": [
+    {
+      "id": "BLOCKER-ARCH-001",
+      "description": "Feature giả định có session xác thực người dùng (req.user.id đáng tin cậy cho ownership check) nhưng repository chưa có bất kỳ feature user-authentication nào. Architecture thiết kế contract độc lập với cơ chế auth cụ thể nhưng KHÔNG tự xây auth để tránh mở rộng scope ngoài yêu cầu.",
+      "owner": "coordinator + product + user",
+      "affected_gates": ["IMPLEMENTATION"],
+      "status": "OPEN",
+      "evidence": "architecture/binance-read-only-connection.md mục Gate check và scope + Open decisions và readiness"
+    }
+  ],
+  "open_questions": [
+    {
+      "id": "OQ-R01",
+      "description": "Endpoint/field Binance chính xác để xác minh account mode là Cross Margin Classic (phân biệt Isolated Margin/Spot).",
+      "owner": "ba-feasibility-agent",
+      "affected_gates": ["BA_FEASIBILITY", "ARCHITECTURE"],
+      "status": "RESOLVED",
+      "evidence": "analysis/binance-read-only-connection-feasibility.md EV-001/EV-002: GET /sapi/v1/margin/account, field accountType = MARGIN_1 (Classic) / MARGIN_2 (Pro); Isolated Margin dùng endpoint khác hẳn."
+    },
+    {
+      "id": "OQ-R02",
+      "description": "Binance API có expose permission scope (trading/withdraw enabled) của key qua endpoint nào để phát hiện permission-too-broad không?",
+      "owner": "ba-feasibility-agent",
+      "affected_gates": ["BA_FEASIBILITY", "ARCHITECTURE"],
+      "status": "RESOLVED",
+      "evidence": "analysis/binance-read-only-connection-feasibility.md EV-003: GET /sapi/v1/account/apiRestrictions trả enableReading/enableMargin/enableSpotAndMarginTrading/enableWithdrawals/... Điều kiện fallback fail-closed nếu call này lỗi ghi ở COND-003."
+    },
+    {
+      "id": "OQ-R03",
+      "description": "Cho phép nhiều connection trùng cùng 1 Binance account/user hay giới hạn 1 connection/account?",
+      "owner": "product + user",
+      "affected_gates": ["ARCHITECTURE"],
+      "status": "OPEN",
+      "evidence": null
+    },
+    {
+      "id": "OQ-R04",
+      "description": "Có cần background re-verify định kỳ để phát hiện permission thay đổi/key revoke không (ảnh hưởng scope, không chặn MVP on-demand read)?",
+      "owner": "product + ba + user",
+      "affected_gates": ["ARCHITECTURE"],
+      "status": "OPEN",
+      "evidence": null
+    },
+    {
+      "id": "OQ-R05",
+      "description": "Binance có Margin sandbox/testnet thật sự hỗ trợ Cross Margin không, hay chỉ Spot testnet?",
+      "owner": "ba-feasibility-agent",
+      "affected_gates": ["BA_FEASIBILITY"],
+      "status": "RESOLVED",
+      "evidence": "analysis/binance-read-only-connection-feasibility.md EV-004: testnet.binance.vision chỉ hỗ trợ /api (Spot), không hỗ trợ /sapi (Margin). Không có Margin sandbox chính thức."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "Không có Margin sandbox chính thức của Binance → automated test dựa 100% trên mocked fixture xây từ tài liệu chính thức, không phải real API response đã verify end-to-end. Nếu Binance đổi field/response khác tài liệu, test không phát hiện cho tới khi chạy thật.",
+      "owner": "architect-agent + qa-agent",
+      "status": "OPEN",
+      "mitigation": "Manual smoke test bằng tài khoản margin thật của dev/QA, chỉ GET calls (không mutate, không rủi ro tài chính), ghi evidence riêng trong qa/binance-read-only-connection.md trước release. Không dùng làm automated test.",
+      "accepted_by": null
+    }
+  ],
+  "conditions": [
+    {
+      "id": "COND-001",
+      "description": "Lấy sample response thật (hoặc fixture sát tài liệu chính thức) cho GET /sapi/v1/margin/account và GET /sapi/v1/account/apiRestrictions trước khi chốt schema lưu trữ số liệu (định dạng string/decimal, đầy đủ field).",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/binance-read-only-connection.md: Prisma schema dùng đúng field theo EV-001/EV-003; manual smoke test bắt buộc trước QA DONE để xác nhận thực tế (RISK-001 mitigation), ghi evidence tại qa/binance-read-only-connection.md khi tới gate đó."
+    },
+    {
+      "id": "COND-002",
+      "description": "Thiết kế rõ 2 nhánh lỗi khác nhau cho AC-003: (a) accountType=MARGIN_2 (Cross Margin Pro, không hỗ trợ) và (b) tài khoản chưa mở Cross Margin (endpoint lỗi) — không gộp chung thành một thông báo lỗi.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/binance-read-only-connection.md: ConnectionStatus.UNSUPPORTED_ACCOUNT_MODE với 2 lastError message riêng biệt theo state machine."
+    },
+    {
+      "id": "COND-003",
+      "description": "Thiết kế fallback fail-closed khi GET /sapi/v1/account/apiRestrictions lỗi/không xác định được permission scope: hiển thị 'không xác định được permission', không mặc định coi là an toàn.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/binance-read-only-connection.md: field permissionUnknown boolean fail-closed, UI banner riêng khi true."
+    }
+  ],
+  "warnings": [],
+  "history": [
+    {
+      "timestamp": "2026-09-29T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "INIT -> IDEA",
+      "reason": "Restart toàn bộ feature binance-read-only-connection theo yêu cầu user: đổi stack sang NestJS (backend) + ReactJS (frontend), xóa toàn bộ artifact/code cũ (Python/Flask + vanilla JS) và chạy lại đầy đủ workflow từ IDEA.",
+      "evidence": "User instruction 2026-09-29. Đã xóa: margin_app/, tests/frontend/, requirements/binance-read-only-connection.md (cũ), analysis/binance-read-only-connection-feasibility.md (cũ), architecture/binance-read-only-connection.md (cũ), features/binance-read-only-connection/ cũ (decision.json, review.md, ba-architecture-validation.md, frontend-evidence.md, history/). Xác nhận qua git status: chỉ còn templates, docs/, agents/, workflows/, features/README.md, features/decision.template.json, tests/backend (rỗng, không thuộc danh sách xóa nên giữ nguyên)."
+    },
+    {
+      "timestamp": "2026-09-29T00:10:00Z",
+      "actor": "coordinator (product-requirement-agent role)",
+      "transition": "IDEA -> REQUIREMENT (requirement_status READY)",
+      "reason": "Viết lại requirements/binance-read-only-connection.md từ đầu (không copy file cũ đã xóa), giữ nguyên quyết định nghiệp vụ đã chốt trước đó bởi user (READ_ONLY tuyệt đối, hosted multi-user, Việt Nam, Binance.com Cross Margin Classic). AC/BR đầy đủ, open questions OQ-R01..R05 ghi rõ owner/affected_gates cho BA.",
+      "evidence": "requirements/binance-read-only-connection.md sha256:169ac1c4dd000a187ecfcd150e43f8d0a74b752c485782e51b87418d25f213dc"
+    },
+    {
+      "timestamp": "2026-09-29T00:30:00Z",
+      "actor": "coordinator (ba-feasibility-agent role)",
+      "transition": "REQUIREMENT -> BA_FEASIBILITY (ba_status APPROVED_WITH_CONDITIONS)",
+      "reason": "Xác minh lại từ official Binance docs (developers.binance.com), không dùng artifact cũ đã xóa. Xác nhận GET /sapi/v1/margin/account (accountType MARGIN_1/MARGIN_2) và GET /sapi/v1/account/apiRestrictions cho phép detect Cross Margin Classic và permission scope. Xác nhận không có Margin testnet (chỉ Spot). OQ-R01/OQ-R02/OQ-R05 resolved bằng evidence; OQ-R03/OQ-R04 vẫn OPEN (product/user decision, không chặn BA). 3 điều kiện COND-001..003 due tại ARCHITECTURE gate. RISK-001 (thiếu Margin sandbox) ghi nhận, cần mitigation qua manual smoke test, chưa cần accept vì không vi phạm invariant.",
+      "evidence": "analysis/binance-read-only-connection-feasibility.md sha256:961ccc45e0427776c8ffec1d3b474f9aee0000b9f618656d7d546ee5548b3ba7; evidence register EV-001..EV-006 với URL/ngày kiểm tra 2026-09-29"
+    },
+    {
+      "timestamp": "2026-09-29T01:00:00Z",
+      "actor": "coordinator (architect-agent role)",
+      "transition": "BA_FEASIBILITY -> ARCHITECTURE (architecture_status READY)",
+      "reason": "Thiết kế kiến trúc theo constraint bắt buộc backend NestJS (TypeScript) + frontend ReactJS, DB PostgreSQL + Prisma (lý do: Decimal type an toàn, transaction ACID). Giải quyết COND-001/002/003 từ BA. Giữ nguyên invariant không phụ thuộc stack: READ_ONLY cứng (adapter allowlist 2 endpoint GET/USER_DATA), session+CSRF+ownership per-user, secret encrypted qua secret manager/KMS không plaintext, giá trị Binance giữ string/Decimal không float, concurrency per-connection advisory lock (không global lock), audit redacted, permissionUnknown fail-closed khi không xác minh được permission. Phát hiện và ghi nhận BLOCKER-ARCH-001 (thiếu auth/session prerequisite) — chặn IMPLEMENTATION, không chặn ARCHITECTURE READY vì thiết kế không phụ thuộc cơ chế auth cụ thể. Không tự chuyển sang IMPLEMENTATION; dừng lại chờ user xác nhận.",
+      "evidence": "architecture/binance-read-only-connection.md sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210"
+    },
+    {
+      "timestamp": "2026-09-29T01:30:00Z",
+      "actor": "coordinator",
+      "transition": "ARCHITECTURE (READY, không đổi stage) — editorial: backfill docs/DATABASE.md",
+      "reason": "User bổ sung rule dự án: mọi thay đổi schema phải đồng bộ docs/DATABASE.md (đã thêm vào AGENTS.md và agents/architect|backend/SYSTEM.md). Backfill docs/DATABASE.md với BinanceConnection và ConnectionAuditLog (PLANNED) từ architecture hiện có để không lệch với rule mới. Không thay đổi nội dung architecture/binance-read-only-connection.md nên revision giữ nguyên; đây là editorial gắn thêm evidence, không invalidate gate.",
+      "evidence": "docs/DATABASE.md mục BinanceConnection, ConnectionAuditLog"
+    },
+    {
+      "timestamp": "2026-09-29T02:30:00Z",
+      "actor": "coordinator",
+      "transition": "ARCHITECTURE (READY, không đổi stage) — editorial: docs/DATABASE.md userId FK cụ thể sau khi user-authentication ARCHITECTURE READY",
+      "reason": "architecture/user-authentication.md đạt READY, thiết kế contract req.user.id (uuid, session-based) khớp chính xác giả định BLOCKER-ARCH-001 của architecture/binance-read-only-connection.md (cookie session + CSRF + req.user.id đáng tin cậy). Không có thay đổi nội dung/thiết kế của architecture/binance-read-only-connection.md nên revision giữ nguyên (sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210) — chỉ cập nhật ghi chú docs/DATABASE.md: BinanceConnection.userId từ 'chưa xác định chính xác' thành FK cụ thể tới User.id (uuid) của feature user-authentication. BLOCKER-ARCH-001 vẫn OPEN ở decision này cho tới khi coordinator/user quyết định dispatch backend-agent cho user-authentication trước binance-read-only-connection.",
+      "evidence": "docs/DATABASE.md mục BinanceConnection (ghi chú userId) + architecture/user-authentication.md sha256:7385ccb24b24f3ae9296c25e63171f16f28c5b2c466c63ec15f813906fa1003e; features/user-authentication/decision.json"
+    }
+  ]
+}
