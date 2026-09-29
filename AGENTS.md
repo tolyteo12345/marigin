@@ -11,12 +11,15 @@ Repository này chứa infrastructure hướng dẫn agent cho **Crypto Borrow D
 | product-requirement-agent | agents/product-requirement/SYSTEM.md | requirements/<feature>.md |
 | ba-feasibility-agent | agents/ba-feasibility/SYSTEM.md | analysis/<feature>-feasibility.md |
 | architect-agent | agents/architect/SYSTEM.md | architecture/<feature>.md |
+| design-agent | agents/design/SYSTEM.md | design/<feature>.md |
 | backend-agent | agents/backend/SYSTEM.md | Implementation và bằng chứng kiểm thử |
 | frontend-agent | agents/frontend/SYSTEM.md | UI và bằng chứng kiểm thử |
 | code-review-agent | agents/code-review/SYSTEM.md | features/<feature>/review.md |
 | qa-agent | agents/qa/SYSTEM.md | qa/<feature>.md |
 
 SYSTEM.md là role prompt, không tự tạo runtime hoặc scheduled agent. Khi giao việc, cung cấp role prompt, feature slug, decision contract và artifact đầu vào. Dùng một coordinator làm người ghi decision.json; các role trả kết quả cho coordinator. Không cho nhiều agent ghi cùng contract. Reviewer phải độc lập với người implement.
+
+Với feature có UI: design-agent làm việc song song với architect-agent (cả hai dựa trên requirement đã READY). frontend-agent chỉ bắt đầu implement khi cả `architecture_status` và `design_status` đều READY; thiếu một trong hai là blocker cho IMPLEMENTATION, không cái nào thay thế cái kia. Feature backend-only (không có UI) không cần design-agent.
 
 ## Ngôn ngữ làm việc
 - Giao tiếp với user (trả lời, tóm tắt, đặt câu hỏi làm rõ) bằng tiếng Việt.

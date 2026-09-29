@@ -7,6 +7,7 @@
   "requirement_status": "NOT_STARTED",
   "ba_status": "NOT_STARTED",
   "architecture_status": "NOT_STARTED",
+  "design_status": "NOT_STARTED",
   "implementation_status": "NOT_STARTED",
   "review_status": "NOT_STARTED",
   "qa_status": "NOT_STARTED",
@@ -26,6 +27,10 @@
     },
     "architecture": {
       "path": "architecture/<feature>.md",
+      "revision": null
+    },
+    "design": {
+      "path": "design/<feature>.md",
       "revision": null
     },
     "implementation": {

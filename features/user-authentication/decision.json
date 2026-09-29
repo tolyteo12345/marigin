@@ -2,17 +2,18 @@
   "feature": "user-authentication",
   "contract_version": 1,
   "owner": "coordinator",
-  "updated_at": "2026-09-29T05:00:00Z",
+  "updated_at": "2026-09-29T20:00:00Z",
   "stage": "IMPLEMENTATION",
   "requirement_status": "READY",
   "ba_status": "APPROVED_WITH_CONDITIONS",
   "architecture_status": "READY",
+  "design_status": "READY",
   "implementation_status": "IN_PROGRESS",
   "review_status": "NOT_STARTED",
   "qa_status": "NOT_STARTED",
   "implementation_authorized": true,
   "implementation_authorization_evidence": "User instruction 2026-09-29: \"implement\" — explicit yêu cầu bắt đầu implementation, gửi sau khi đã xem architecture/user-authentication.md (mở trong IDE) và sau khi mọi OQ-A05..A10 đã RESOLVED, không còn blocker/open question nghiệp vụ ảnh hưởng thiết kế.",
-  "implementation_revision": "sha256:fd6d247688429ad35bc193d506c2c36604d661ff6b20ca8b960583019ae14688",
+  "implementation_revision": "sha256:e9a557d5f89eb89972f5f994f4f5fe309dd43a5f896e3bbf531ecd2f2dc717fa",
   "reviewed_revision": null,
   "qa_revision": null,
   "artifacts": {
@@ -28,9 +29,13 @@
       "path": "architecture/user-authentication.md",
       "revision": "sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b"
     },
+    "design": {
+      "path": "design/user-authentication.md",
+      "revision": "sha256:cd74f435bd5496df997087f641e636fb62196861a5e8a1da54b13b9288d99969"
+    },
     "implementation": {
       "path": "features/user-authentication/implementation.md",
-      "revision": "sha256:fd6d247688429ad35bc193d506c2c36604d661ff6b20ca8b960583019ae14688"
+      "revision": "sha256:e9a557d5f89eb89972f5f994f4f5fe309dd43a5f896e3bbf531ecd2f2dc717fa"
     },
     "review": {
       "path": "features/user-authentication/review.md",
@@ -41,7 +46,18 @@
       "revision": null
     }
   },
-  "blockers": [],
+  "blockers": [
+    {
+      "id": "BLOCKER-DESIGN-001",
+      "description": "AGENTS.md/workflow vừa thêm design-agent + gate design_status READY song song architecture_status cho feature có UI (2026-09-29), sau khi frontend feature này đã implement mà chưa qua design gate (không tồn tại lúc đó). Không retro-block IMPLEMENTATION đã làm, nhưng design/user-authentication.md chưa tồn tại — cần coordinator quyết định: (a) chạy design-agent hồi tố để viết design/user-authentication.md khớp UI hiện có trước khi feature vào CODE_REVIEW, hoặc (b) user chấp nhận đây là legacy exception và bỏ qua design gate riêng cho feature này.",
+      "owner": "coordinator + user",
+      "affected_gates": [
+        "CODE_REVIEW"
+      ],
+      "status": "RESOLVED",
+      "evidence": "workflows/feature-development.md hàng DESIGN (mới); AGENTS.md mục Vai trò (thêm design-agent, 2026-09-29). Resolved 2026-09-29: coordinator chạy retro-design, design/user-authentication.md viết khớp UI đã implement (không đổi code), design_status=READY."
+    }
+  ],
   "open_questions": [
     {
       "id": "OQ-A05",
@@ -323,6 +339,20 @@
       "transition": "IMPLEMENTATION (IN_PROGRESS, không đổi stage) — thêm Swagger + Postman, deploy migration thật",
       "reason": "User yêu cầu 2026-09-29 (\"API đang không có document...\"): bổ sung Swagger + Postman cho API hiện có VÀ thêm rule bắt buộc việc này cho mọi feature từ nay (đã cập nhật AGENTS.md mục 'Quy tắc bắt buộc' + workflows/feature-development.md hàng IMPLEMENTATION — áp dụng toàn repo, không riêng feature này). Cài @nestjs/swagger@^8 (tương thích Nest 10), thêm decorator cho 8 route public (loại trừ webhook qua @ApiExcludeEndpoint vì là Telegram-infra-to-server, không phải client contract), mount tại /api/docs khi non-production. Tạo backend/postman/margin-trading-auth.postman_collection.json (3 folder, khớp cả 9 route kể cả webhook để test thủ công). Để verify chính xác, đã khởi động Postgres thật qua docker compose + prisma migrate deploy (migration 20260929000000_init áp dụng thành công) và chạy backend thật (npm run start) — verify toàn bộ flow bằng newman (Postman CLI) chạy thật, không chỉ đọc code: csrf-token/register/login/me/logout/telegram start+status/account-link (401 đúng khi chưa đăng nhập)/webhook (401 đúng khi thiếu secret) đều đúng như Swagger mô tả. Vì đã có Postgres thật, tiện thể hoàn tất mục 1 'Việc còn lại' — cập nhật docs/DATABASE.md 6 bảng user-authentication PLANNED -> IMPLEMENTED (mục 2 Supertest tự động và mục 3 chạy chung frontend thật vẫn CHƯA làm). Dừng backend/postgres sau khi verify xong, không để chạy nền.",
       "evidence": "features/user-authentication/implementation.md sha256:fd6d247688429ad35bc193d506c2c36604d661ff6b20ca8b960583019ae14688; docs/DATABASE.md (6 bảng user-authentication IMPLEMENTED); backend/postman/margin-trading-auth.postman_collection.json; AGENTS.md mục 'Quy tắc bắt buộc' (rule Swagger+Postman mới); workflows/feature-development.md hàng IMPLEMENTATION (cập nhật); newman run kết quả 2026-09-29 (14 request, 0 failed, trừ 2 request cố ý test negative-path)."
+    },
+    {
+      "timestamp": "2026-09-29T19:30:00Z",
+      "actor": "coordinator",
+      "transition": "IMPLEMENTATION (IN_PROGRESS, không đổi stage) — thêm design-agent vào workflow, refactor frontend sang common component layer",
+      "reason": "User nhận xét frontend hiện tại (LoginForm/RegisterForm/AccountLinkPanel/LogoutButton/TelegramLoginButton) trùng lặp input/button/error-message không có shared layer, thuần CSS boilerplate mặc định của Vite, yêu cầu: thêm design-agent vào quy trình (chạy song song architect-agent, gate design_status READY trước khi frontend implement UI mới), và refactor code hiện có sang common/shared component. Đã thêm agents/design/SYSTEM.md, cập nhật AGENTS.md/workflows/feature-development.md/agents/frontend/SYSTEM.md, thêm design_status vào decision template + 2 decision.json hiện có. Ghi BLOCKER-DESIGN-001: feature này đã implement trước khi design gate tồn tại, cần coordinator+user quyết định retro-design hay chấp nhận legacy exception trước CODE_REVIEW. Refactor common layer (frontend/src/components/common/) là dọn code hiện có theo rule mới, không đổi behavior/API/test contract — xem features/user-authentication/implementation.md để biết chi tiết evidence test.",
+      "evidence": "agents/design/SYSTEM.md (mới); AGENTS.md mục Vai trò; workflows/feature-development.md (stage DESIGN); agents/frontend/SYSTEM.md; features/decision.template.json; frontend/src/components/common/*"
+    },
+    {
+      "timestamp": "2026-09-29T20:00:00Z",
+      "actor": "coordinator (design-agent role)",
+      "transition": "IMPLEMENTATION (IN_PROGRESS, không đổi stage) — design_status NOT_STARTED -> READY (retrofit)",
+      "reason": "User yêu cầu retro-design cho user-authentication để đóng BLOCKER-DESIGN-001. Viết design/user-authentication.md mô tả 5 màn hình/trạng thái (LoginForm, RegisterForm, TelegramLoginButton state machine, shell đã đăng nhập, AccountLinkPanel) khớp đúng code hiện có (đã refactor common layer), map vào 4 common component (TextField/Button/InlineAlert/InlineStatus), ghi accessibility notes (label association, role alert/status) và xác nhận không có financial action/auto-chain nào trong feature. Không đổi code, chỉ viết spec hồi tố. BLOCKER-DESIGN-001 RESOLVED.",
+      "evidence": "design/user-authentication.md sha256:cd74f435bd5496df997087f641e636fb62196861a5e8a1da54b13b9288d99969"
     }
   ]
 }

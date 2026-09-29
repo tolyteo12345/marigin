@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AccountLinkPanel } from './components/AccountLinkPanel';
+import { Button } from './components/common';
 import { LoginForm } from './components/LoginForm';
 import { LogoutButton } from './components/LogoutButton';
 import { RegisterForm } from './components/RegisterForm';
@@ -27,9 +28,9 @@ function App() {
       ) : (
         <LoginForm onLoggedIn={() => setIsLoggedIn(true)} />
       )}
-      <button type="button" onClick={() => setShowRegister((v) => !v)}>
+      <Button variant="secondary" onClick={() => setShowRegister((v) => !v)}>
         {showRegister ? 'Đã có tài khoản? Đăng nhập' : 'Chưa có tài khoản? Đăng ký'}
-      </button>
+      </Button>
     </div>
   );
 }

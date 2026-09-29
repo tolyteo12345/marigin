@@ -67,5 +67,25 @@ Không có sai lệch integration nào giữa 2 phần cần sửa.
 4. RISK-A03 (kế thừa, chưa mitigate): manual smoke test với bot Telegram thật (BotFather) + webhook HTTPS công khai — thuộc QA gate, không phải backend/frontend-agent.
 5. Quyết định `npm audit` fix trước hay sau production.
 
+## Cập nhật 2026-09-29: refactor sang common component layer
+User yêu cầu thêm design-agent vào workflow (xem AGENTS.md/workflows/feature-development.md/agents/design/SYSTEM.md) và dọn frontend vì các form (`LoginForm`, `RegisterForm`, `AccountLinkPanel`) lặp lại input/button/error-message thô, không có shared layer, CSS vẫn là boilerplate mặc định của Vite.
+
+Đã thêm `frontend/src/components/common/` (`TextField`, `Button`, `InlineAlert`, `InlineStatus`) và style tương ứng trong `index.css` (`.field`, `.btn`/`.btn-primary`/`.btn-secondary`, `.inline-message*`, `.tabs`/`.tab`). Áp dụng vào toàn bộ 5 component hiện có (`LoginForm`, `RegisterForm`, `AccountLinkPanel`, `LogoutButton`, `TelegramLoginButton`) và `App.tsx`. Không đổi DOM semantics (label association, `role="alert"`/`role="status"`, accessible name của button) nên không sửa test nào.
+
+**Bằng chứng (verify lại, không chỉ tin báo cáo)**:
+```
+cd frontend && npm test -- --run
+Test Files  3 passed (3)
+Tests       8 passed (8)
+
+npm run build
+✓ built in 108ms   (tsc -b + vite build, không lỗi)
+
+npm run lint
+1 warning (react/set-state-in-effect trong AccountLinkPanel.tsx, đã tồn tại từ trước refactor này, không liên quan thay đổi)
+```
+
+**Ghi nhận (BLOCKER-DESIGN-001 trong decision.json)**: gate `design_status` mới thêm chưa áp dụng hồi tố cho UI đã implement trước đó của chính feature này — `design/user-authentication.md` chưa tồn tại. Coordinator cần quyết định retro-design hay legacy exception trước khi feature vào CODE_REVIEW.
+
 ## Handoff cho CODE_REVIEW
 Chưa đề xuất chuyển CODE_REVIEW — cần hoàn tất mục "Việc còn lại" ở trên trước (đặc biệt mục 1-3, cần môi trường có Postgres). Reviewer (độc lập, không phải backend/frontend-agent đã implement) sẽ cần: source diff, kết quả test (unit + integration khi có), migration đã áp dụng, và đối chiếu lại từng AC trong architecture doc.

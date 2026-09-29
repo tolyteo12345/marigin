@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, telegramStart, telegramStatus } from '../api/authClient';
 import type { TelegramLoginRequestStatus } from '../api/types';
+import { Button, InlineStatus } from './common';
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -121,15 +122,15 @@ export function TelegramLoginButton({
 
   if (phase === 'idle' || phase === 'starting') {
     return (
-      <button type="button" onClick={() => void handleStart()} disabled={phase === 'starting'}>
+      <Button onClick={() => void handleStart()} disabled={phase === 'starting'}>
         {label}
-      </button>
+      </Button>
     );
   }
 
   if (phase === 'waiting') {
     return (
-      <div role="status">
+      <div className="inline-message inline-message-status" role="status">
         <p>Đang chờ xác nhận trên Telegram...</p>
         <p>Còn lại: {secondsLeft}s</p>
         {deepLinkUrl && code && <p>Nếu tab không tự mở, bấm lại nút để thử lại.</p>}
@@ -138,16 +139,16 @@ export function TelegramLoginButton({
   }
 
   if (phase === 'claimed') {
-    return <p role="status">Đã xác nhận, đang chuyển hướng...</p>;
+    return <InlineStatus>Đã xác nhận, đang chuyển hướng...</InlineStatus>;
   }
 
   if (phase === 'rejected') {
     return (
-      <div role="alert">
+      <div className="inline-message inline-message-alert" role="alert">
         <p>{rejectReason}</p>
-        <button type="button" onClick={handleRetry}>
+        <Button variant="secondary" onClick={handleRetry}>
           Tạo mã mới
-        </button>
+        </Button>
       </div>
     );
   }
@@ -156,20 +157,20 @@ export function TelegramLoginButton({
     return (
       <div>
         <p>Mã đã hết hạn.</p>
-        <button type="button" onClick={handleRetry}>
+        <Button variant="secondary" onClick={handleRetry}>
           Tạo mã mới
-        </button>
+        </Button>
       </div>
     );
   }
 
   // phase === 'error'
   return (
-    <div role="alert">
+    <div className="inline-message inline-message-alert" role="alert">
       <p>Không thể kết nối tới máy chủ, vui lòng thử lại.</p>
-      <button type="button" onClick={handleRetry}>
+      <Button variant="secondary" onClick={handleRetry}>
         Thử lại
-      </button>
+      </Button>
     </div>
   );
 }
