@@ -1,0 +1,177 @@
+{
+  "feature": "ui-visual-refresh",
+  "contract_version": 1,
+  "owner": "coordinator",
+  "updated_at": "2026-09-29T02:15:00Z",
+  "stage": "DONE",
+  "requirement_status": "READY",
+  "ba_status": "APPROVED",
+  "architecture_status": "READY",
+  "design_status": "READY",
+  "implementation_status": "READY",
+  "review_status": "APPROVED",
+  "qa_status": "PASS_WITH_WARNINGS",
+  "implementation_authorized": true,
+  "implementation_authorization_evidence": "User xác nhận 'ok' bắt đầu implementation ở turn 2026-09-29 sau khi architecture_status và design_status đều READY.",
+  "implementation_revision": 2,
+  "reviewed_revision": 2,
+  "qa_revision": 2,
+  "artifacts": {
+    "requirement": {
+      "path": "requirements/ui-visual-refresh.md",
+      "revision": 2
+    },
+    "ba": {
+      "path": "analysis/ui-visual-refresh-feasibility.md",
+      "revision": 1
+    },
+    "architecture": {
+      "path": "architecture/ui-visual-refresh.md",
+      "revision": 1
+    },
+    "design": {
+      "path": "design/ui-visual-refresh.md",
+      "revision": 2
+    },
+    "implementation": {
+      "path": "features/ui-visual-refresh/implementation.md",
+      "revision": 2
+    },
+    "review": {
+      "path": "features/ui-visual-refresh/review.md",
+      "revision": 2
+    },
+    "qa": {
+      "path": "qa/ui-visual-refresh.md",
+      "revision": 2
+    }
+  },
+  "blockers": [],
+  "open_questions": [
+    {
+      "id": "OQ-002",
+      "owner": "design-agent",
+      "affected_gate": "DESIGN",
+      "question": "Bộ design token cụ thể (palette hex cho cả dark/light, font family, spacing scale) tham chiếu từ Hyperliquid, và cơ chế implement theme switching là gì?",
+      "status": "RESOLVED",
+      "resolution": "Trả lời trong design/ui-visual-refresh.md rev 1: bảng token màu/typography/spacing dark+light, cơ chế CSS custom properties + [data-theme] attribute + ThemeProvider context + localStorage.",
+      "resolved_at": "2026-09-29T00:30:00Z"
+    },
+    {
+      "id": "OQ-001",
+      "owner": "user",
+      "affected_gate": "DESIGN",
+      "question": "Có cần light mode trong scope này không, hay dark-only (theo Hyperliquid) là đủ?",
+      "status": "RESOLVED",
+      "resolution": "User xác nhận cần cả dark và light mode.",
+      "resolved_at": "2026-09-29T00:10:00Z"
+    },
+    {
+      "id": "OQ-003",
+      "owner": "user",
+      "affected_gate": "REQUIREMENT",
+      "question": "Xác nhận phạm vi chỉ gồm 5 màn hình/component hiện có (LoginForm, RegisterForm, LogoutButton, TelegramLoginButton, AccountLinkPanel) và common component library, không mở rộng thêm.",
+      "status": "RESOLVED",
+      "resolution": "User xác nhận scope tạm thời chỉ gồm màn hình hiện có.",
+      "resolved_at": "2026-09-29T00:10:00Z"
+    }
+  ],
+  "risks": [],
+  "conditions": [
+    {
+      "id": "COND-001",
+      "owner": "coordinator",
+      "affected_gate": "IMPLEMENTATION",
+      "due_gate": "CODE_REVIEW",
+      "condition": "Xác nhận trực quan AC-001/AC-002/AC-005 bằng ảnh chụp thật (không chỉ code review).",
+      "status": "RESOLVED",
+      "resolution": "Rev 1 không có tool chụp màn hình → user tự xem và phản hồi 'quá xấu, không giống Hyperliquid'. Điều tra ra layout thiếu spec (không phải lỗi tuân thủ token). Cài Playwright tạm thời (npx, không thêm vào package.json của app) chụp được ảnh thật rev 2 sau khi sửa: card căn giữa, giống Hyperliquid rõ rệt — user cần xác nhận lại rev 2 (xem COND-002).",
+      "resolved_at": "2026-09-29T01:30:00Z"
+    },
+    {
+      "id": "COND-002",
+      "owner": "user",
+      "affected_gate": "DONE",
+      "due_gate": "DONE",
+      "condition": "User tự xem lại UI rev 2 (đã sửa layout theo phản hồi 'quá xấu') và xác nhận đạt yêu cầu trước khi coi feature DONE. Riêng AccountLinkPanel (màn hình sau khi đăng nhập) chưa có ảnh chụp (cần backend thật để đăng nhập) — user cần tự kiểm tra màn này khi có backend chạy.",
+      "status": "RESOLVED",
+      "resolution": "User xem ảnh chụp rev 2 (Login dark/light, Register, Telegram tab) và trả lời 'DONE' — chấp nhận rõ ràng. AccountLinkPanel KHÔNG được xác nhận trực quan trong lần đóng gate này (chưa có backend thật để test) — user đóng feature với gap này còn tồn tại, ghi lại trung thực chứ không giả định đã kiểm tra.",
+      "resolved_at": "2026-09-29T02:15:00Z"
+    }
+  ],
+  "warnings": [
+    {
+      "id": "WARN-001",
+      "affected_gate": "QA",
+      "warning": "RESOLVED rev 2: đã có ảnh chụp thật (Playwright) cho 4/5 màn hình. AccountLinkPanel (sau đăng nhập) vẫn chưa chụp được — cần backend thật, xem COND-002."
+    }
+  ],
+  "history": [
+    {
+      "revision": 1,
+      "actor": "coordinator",
+      "action": "Tạo feature ui-visual-refresh từ yêu cầu user (redesign UI theo Hyperliquid). Viết requirements/ui-visual-refresh.md revision 1 với vai trò product-requirement-agent. Đề xuất requirement_status READY để BA review; scope không đụng business logic/financial invariant nên rủi ro feasibility thấp nhưng vẫn cần BA xác nhận chính thức trước ARCHITECTURE/DESIGN.",
+      "timestamp": "2026-09-29T00:00:00Z"
+    },
+    {
+      "revision": 2,
+      "actor": "coordinator",
+      "action": "User trả lời OQ-001 (cần cả dark và light mode) và OQ-003 (xác nhận scope tạm thời chỉ gồm màn hình hiện có). Cập nhật requirements/ui-visual-refresh.md revision 2: BR-003/BR-004 mới, US-004, AC-005/AC-006 cho theme switching + persistence. Đóng OQ-001, OQ-003; giữ OQ-002 (token cụ thể) cho design-agent xử lý ở gate DESIGN. requirement_status vẫn READY.",
+      "timestamp": "2026-09-29T00:10:00Z"
+    },
+    {
+      "revision": 3,
+      "actor": "coordinator",
+      "action": "Chạy BA_FEASIBILITY với vai trò ba-feasibility-agent trên requirement rev 2. Viết analysis/ui-visual-refresh-feasibility.md rev 1: xác nhận code hiện tại (common components chỉ dùng class name tĩnh, style tập trung ở index.css) hỗ trợ token/theme switching mà không đổi component interface hay business logic. Không có claim API/financial/provenance cần verify vì scope thuần visual. Không blocker. ba_status = APPROVED, mở khóa ARCHITECTURE ‖ DESIGN song song.",
+      "timestamp": "2026-09-29T00:20:00Z"
+    },
+    {
+      "revision": 4,
+      "actor": "coordinator",
+      "action": "Chạy ARCHITECTURE và DESIGN song song. architecture/ui-visual-refresh.md rev 1 (vai trò architect-agent): ThemeProvider React Context nội bộ (không thư viện ngoài), CSS custom properties + [data-theme] attribute, localStorage key mtl-theme, đọc đồng bộ để tránh flash. Không DB/API/financial change nào — docs/DATABASE.md không cần cập nhật. design/ui-visual-refresh.md rev 1 (vai trò design-agent): bảng token màu/typography/spacing dark+light tham chiếu Hyperliquid, mapping vào common component (Button/TextField/InlineAlert/InlineStatus) chỉ qua CSS không đổi props, spec ThemeToggle, accessibility/contrast notes. Đóng OQ-002. architecture_status = READY, design_status = READY. Cả hai điều kiện IMPLEMENTATION đã đủ nhưng implementation_authorized vẫn false, chờ user yêu cầu bắt đầu code.",
+      "timestamp": "2026-09-29T00:30:00Z"
+    },
+    {
+      "revision": 5,
+      "actor": "coordinator",
+      "action": "User xác nhận bắt đầu implementation. Vai trò frontend-agent: thêm frontend/src/theme/{theme-context.ts,ThemeProvider.tsx,useTheme.ts,ThemeToggle.tsx,ThemeProvider.test.tsx}, wire ThemeProvider vào main.tsx, ThemeToggle vào App.tsx (.app-header, cả 2 nhánh auth state), viết lại toàn bộ frontend/src/index.css theo token design rev 1. Phát hiện --color-accent light (#00A886) không đạt WCAG AA khi dùng làm bg cho text trắng/text trên nền trắng (~3.02:1) qua linter contrast check; cập nhật design/ui-visual-refresh.md sang #007A5E/#006B52 (~5.34:1) và đồng bộ CSS — sửa đúng ở nguồn token, không patch rời. Test: 12/12 pass (8 cũ không sửa + 4 mới cho theme). Build sạch, lint sạch (1 warning pre-existing không liên quan, xác nhận bằng git stash -u). Không có tool screenshot trong môi trường này — ghi WARN-001 yêu cầu user tự xem trực tiếp trước khi chấp nhận AC-001/002/005. implementation_status = READY, implementation_authorized = true, stage chuyển CODE_REVIEW.",
+      "timestamp": "2026-09-29T00:45:00Z"
+    },
+    {
+      "revision": 6,
+      "actor": "coordinator",
+      "action": "Chạy CODE_REVIEW qua subagent độc lập (chưa thấy quá trình implement) theo agents/code-review/SYSTEM.md. review.md rev 1: tự chạy lại toàn bộ test/build/lint (khớp implementation.md), tự tính lại contrast WCAG (khớp), diff-check xác nhận không scope-creep (chỉ App.tsx/index.css/main.tsx + theme/ mới, không đụng component nghiệp vụ/common interface/API/DB). 0 finding BLOCKER/MAJOR/MINOR. Đề xuất APPROVED có điều kiện: WARN-001 (xác nhận trực quan) chuyển thành COND-001, due_gate DONE, owner user. review_status = APPROVED, reviewed_revision = 1, stage chuyển QA.",
+      "timestamp": "2026-09-29T01:00:00Z"
+    },
+    {
+      "revision": 7,
+      "actor": "coordinator",
+      "action": "Chạy QA (vai trò qa-agent) trên implementation revision 1 (đã review APPROVED). qa/ui-visual-refresh.md rev 1: retest thật đúng revision (12/12 test, build sạch, khớp review). Đối chiếu AC-001..006: AC-003/004/006 PASS đầy đủ (verify bằng code/test tự động). AC-001/002/005 PASS_WITH_WARNING — phần cơ chế/code đã verify PASS, phần xác nhận trực quan (screenshot/nhìn bằng mắt) là NOT_RUN vì không có tool trong môi trường QA, không phải FAIL. Không FAIL AC nào, không ảnh hưởng financial/security invariant. qa_status = PASS_WITH_WARNINGS, qa_revision = 1. COND-001 (owner user, due_gate DONE) vẫn OPEN — cần user tự mở npm run dev xác nhận trước khi coi feature DONE.",
+      "timestamp": "2026-09-29T01:15:00Z"
+    },
+    {
+      "revision": 8,
+      "actor": "coordinator",
+      "action": "User tự xem UI rev 1, phản hồi 'quá xấu, không biết lấy gì để so với hyperliquid'. Cài Playwright tạm thời (npx, ngoài package.json app) để tự chụp màn hình thật lần đầu trong toàn bộ workflow — xác nhận đúng như user nói: #root cố định 1126px + border-inline (leftover scaffold) khiến form tràn full-width, không card, không center, để trống phần lớn màn hình. Đây là lỗ hổng spec (design rev 1 chỉ đặc tả token màu, chưa đặc tả page composition), không phải lỗi implementation không khớp spec — quay lại design trước khi sửa code. design/ui-visual-refresh.md rev 2: thêm mục 'Layout / composition' (app-header/app-main/card, --radius-lg). implementation.md rev 2: sửa index.css (bỏ #root cũ, thêm .app-header/.app-main/.card/.card .btn full-width) và App.tsx (bọc nội dung trong .app-main>.card). Chụp lại: card căn giữa, giống Hyperliquid rõ rệt (dark+light, cả 2 tab login, register, telegram tab) — 4/5 màn hình có ảnh chụp thật, AccountLinkPanel chưa chụp được (cần backend thật). Test 12/12 vẫn pass, build/lint sạch. COND-001 (thiếu ảnh chụp rev 1) RESOLVED. Theo workflows/feature-development.md 'Design đổi → invalidate frontend implementation readiness/review/QA': review_status và qa_status reset về NOT_STARTED, reviewed_revision/qa_revision = null, implementation_revision = 2, chờ review+QA lại. Thêm COND-002 (user xác nhận rev 2 + AccountLinkPanel, due_gate DONE).",
+      "timestamp": "2026-09-29T01:30:00Z"
+    },
+    {
+      "revision": 9,
+      "actor": "coordinator",
+      "action": "Chạy lại CODE_REVIEW độc lập cho implementation rev 2 (bắt buộc vì design rev 2 invalidate review cũ). Subagent tự chụp lại screenshot thật (Playwright), xác nhận layout mới đúng spec design rev 2 và rõ rệt hướng Hyperliquid-style, diff/test/build/lint khớp implementation.md rev 2. review.md ghi đè rev 2. Gap còn lại: AccountLinkPanel vẫn chưa chụp được (giữ COND-002). review_status = APPROVED, reviewed_revision = 2, stage chuyển QA.",
+      "timestamp": "2026-09-29T01:45:00Z"
+    },
+    {
+      "revision": 10,
+      "actor": "coordinator",
+      "action": "Chạy lại QA cho implementation rev 2 (đã review rev 2 APPROVED). qa/ui-visual-refresh.md rev 2: retest 12/12 pass, build sạch. AC-001/AC-005 nâng từ PASS_WITH_WARNING lên PASS hoàn toàn nhờ ảnh chụp thật rev 2 (không còn NOT_RUN). AC-002 vẫn PASS_WITH_WARNING vì AccountLinkPanel chưa chụp được (cần backend thật). Không FAIL AC nào. qa_status = PASS_WITH_WARNINGS, qa_revision = 2. COND-002 (owner user, due_gate DONE) vẫn OPEN: cần user xác nhận rev 2 đạt yêu cầu + tự xem AccountLinkPanel khi có backend.",
+      "timestamp": "2026-09-29T02:00:00Z"
+    },
+    {
+      "revision": 11,
+      "actor": "coordinator",
+      "action": "User xem ảnh chụp rev 2 và trả lời 'DONE' — chấp nhận rõ ràng theo Definition of Done (warning không ảnh hưởng correctness/security/financial, user/product owner chấp nhận). COND-002 RESOLVED (ghi rõ AccountLinkPanel chưa được xác nhận trực quan thật, user chấp nhận đóng gate với gap này còn tồn tại). Tất cả gate hợp lệ: requirement READY, ba APPROVED, architecture READY, design READY (rev 2), implementation READY (rev 2), review APPROVED (rev 2), qa PASS_WITH_WARNINGS (rev 2) với warning đã được user chấp nhận. stage = DONE. Chưa commit code — chờ user yêu cầu riêng nếu muốn commit/merge.",
+      "timestamp": "2026-09-29T02:15:00Z"
+    }
+  ]
+}
