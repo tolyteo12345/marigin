@@ -17,6 +17,17 @@ const API_BASE = '/api/auth';
 // no client-held long-lived secrets beyond what the session cookie already holds).
 let cachedCsrfToken: string | null = null;
 
+// The backend regenerates the session (new csrfToken) on every anonymous ->
+// authenticated transition (login, register, Telegram claim), per the
+// session-fixation rule in architecture/user-authentication.md. The SPA never
+// reloads across that transition (App.tsx just flips isLoggedIn), so a token
+// cached before the transition would otherwise be replayed against the new
+// session and rejected with 403. Call this right after any such transition
+// resolves so the next CSRF-protected request fetches a fresh token.
+function invalidateCsrfToken(): void {
+  cachedCsrfToken = null;
+}
+
 async function parseErrorBody(response: Response): Promise<ApiErrorBody | null> {
   try {
     return (await response.json()) as ApiErrorBody;
@@ -80,12 +91,14 @@ async function request<T>(
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
-export function register(email: string, password: string): Promise<void> {
-  return request('POST', '/register', { email, password }, true);
+export async function register(email: string, password: string): Promise<void> {
+  await request('POST', '/register', { email, password }, true);
+  invalidateCsrfToken();
 }
 
-export function login(email: string, password: string): Promise<void> {
-  return request('POST', '/login', { email, password }, true);
+export async function login(email: string, password: string): Promise<void> {
+  await request('POST', '/login', { email, password }, true);
+  invalidateCsrfToken();
 }
 
 export function logout(): Promise<void> {
@@ -100,8 +113,12 @@ export function telegramStart(): Promise<TelegramStartResponse> {
   return request('POST', '/telegram/start', undefined, true);
 }
 
-export function telegramStatus(code: string): Promise<TelegramStatusResponse> {
-  return request('GET', `/telegram/status/${encodeURIComponent(code)}`);
+export async function telegramStatus(code: string): Promise<TelegramStatusResponse> {
+  const result = await request<TelegramStatusResponse>('GET', `/telegram/status/${encodeURIComponent(code)}`);
+  if (result.status === 'CLAIMED') {
+    invalidateCsrfToken();
+  }
+  return result;
 }
 
 export function linkLocal(email: string, password: string): Promise<void> {

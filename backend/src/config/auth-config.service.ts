@@ -39,22 +39,6 @@ export class AuthConfigService {
     return username;
   }
 
-  get telegramWebhookSecretToken(): string {
-    const secret = this.config.get<string>('TELEGRAM_WEBHOOK_SECRET_TOKEN');
-    if (!secret) {
-      throw new Error('TELEGRAM_WEBHOOK_SECRET_TOKEN env var is required');
-    }
-    return secret;
-  }
-
-  get telegramWebhookUrl(): string {
-    const url = this.config.get<string>('TELEGRAM_WEBHOOK_URL');
-    if (!url) {
-      throw new Error('TELEGRAM_WEBHOOK_URL env var is required');
-    }
-    return url;
-  }
-
   get isProduction(): boolean {
     return this.config.get<string>('NODE_ENV') === 'production';
   }

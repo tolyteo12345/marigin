@@ -1,8 +1,33 @@
 # Implementation: user-authentication
 
-Owner: coordinator (tổng hợp từ backend-agent + frontend-agent) | Architecture revision: sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b
-Requirement revision: r3 sha256:1702d36a21ab7c886ad4287355ae3f2abd39a7484317783c4b7d27042638883e
+Owner: coordinator (tổng hợp từ backend-agent + frontend-agent) | Architecture revision: sha256:d9f767aba0da91da047f38aabcdf51393ec8bade05aa6be14e31233e7ed3fd90
+Requirement revision: r4 sha256:124bbe4476ad90aacc6741e35a60f19afc64ace61382dc012d61c102b26045e6
 Decision: features/user-authentication/decision.json
+
+## Cập nhật 2026-09-30: đổi cơ chế Telegram từ webhook sang long-polling
+User phát hiện webhook không hoạt động được ở local dev (`ERR_CONNECTION_REFUSED`/không nhận update — Telegram không gửi được webhook về `localhost`) và yêu cầu đổi sang long-polling `getUpdates` để không cần domain HTTPS công khai ở bất kỳ môi trường nào. Đã chạy lại đầy đủ chuỗi REQUIREMENT (r4) → BA_FEASIBILITY (EV-012 mới) → ARCHITECTURE (READY) trước khi sửa code, theo Invalidation rule của `workflows/feature-development.md` (BR-009 chốt cứng "webhook" nên đổi cơ chế là thay đổi nội dung requirement, không chỉ chi tiết architecture).
+
+Thay đổi code (`backend/src/telegram-bot/`):
+- `telegram-bot.service.ts`: `TelegramBotService` implement `OnModuleInit`/`OnModuleDestroy`. `onModuleInit` gọi `deleteWebhook()` rồi khởi động vòng lặp `pollLoop()` nền gọi `getUpdates({ offset, timeout: 30, allowed_updates: ['message'] })`; `offset` giữ in-memory, tự tính lại `= max(update_id) + 1` sau mỗi batch (EV-012). `handleUpdate()` gộp logic parse `/start <code>` + `confirmFromUpdate` (đổi tên từ `confirmFromWebhook`) + `sendMessage` + ghi `AuthAuditLog TELEGRAM_LOGIN_CONFIRMED` — trước đây nằm ở controller, nay chuyển vào service vì không còn là 1 HTTP request nữa. Bỏ `verifyWebhookSecret`/`setWebhook`, thêm `deleteWebhook`. `TelegramBotService` cần inject thêm `AuditService`.
+- `telegram-bot.controller.ts`: xoá hẳn endpoint `POST /api/auth/telegram/webhook` (không còn ai gọi vào backend cho luồng Telegram nữa). `start`/`status` giữ nguyên logic.
+- `main.ts`: bỏ lời gọi `setWebhook()` thủ công lúc bootstrap (chuyển vào `onModuleInit`), thêm `app.enableShutdownHooks()` để `onModuleDestroy` chạy đúng lúc SIGTERM, dừng vòng lặp polling.
+- `auth-config.service.ts`: xoá 2 getter `telegramWebhookUrl`/`telegramWebhookSecretToken`. `.env`/`.env.example`: xoá `TELEGRAM_WEBHOOK_URL`/`TELEGRAM_WEBHOOK_SECRET_TOKEN`.
+- `backend/postman/margin-trading-auth.postman_collection.json`: xoá request "Webhook" + variable `telegramWebhookSecret` (endpoint không còn tồn tại). Swagger tự động hết mô tả endpoint đó (không cần sửa gì thêm vì trước đó đã `@ApiExcludeEndpoint`).
+- `backend/README.md`: cập nhật ghi chú chỉ cần `TELEGRAM_BOT_TOKEN`, không cần webhook URL/domain.
+
+**Bằng chứng kiểm thử (đã tự chạy lại)**:
+```
+cd backend && npx tsc -b --noEmit   # sạch
+cd backend && npx nest build        # sạch
+cd backend && npx jest
+Test Suites: 4 passed, 4 total
+Tests:       32 passed, 32 total     # 35 - 3 test verifyWebhookSecret (method đã xoá) = 32
+```
+`telegram-bot.service.spec.ts` cập nhật: bỏ `describe('verifyWebhookSecret')`, đổi `confirmFromWebhook` → `confirmFromUpdate` trong test, mock thêm `AuditService`. Không có test tự động cho `pollLoop`/`getUpdates` thật (gọi network) — nhất quán với việc `setWebhook`/`sendMessage` cũ cũng chưa từng có test network thật, chỉ có thể verify qua manual smoke test với bot thật (RISK-A03).
+
+Frontend không đổi (không chạm tới cơ chế nhận update phía server, `TelegramLoginButton`/`authClient.ts` vẫn gọi đúng `/telegram/start` + poll `/telegram/status/:code` như cũ).
+
+RISK-A03 coi như RESOLVED cho phần thiết kế/vận hành (không cần domain/webhook công khai nữa); mục 4 "Việc còn lại" bên dưới cập nhật theo.
 
 ## Trạng thái tổng quan
 Implementation **IN_PROGRESS**, chưa READY. Code backend + frontend đã viết đầy đủ theo scope, build sạch, unit test pass. Đã verify chạy thật với Postgres thật (Docker) cho từng endpoint qua curl/Postman (xem mục "API documentation" và "Việc còn lại" bên dưới) — vẫn còn thiếu integration test tự động (Supertest) và chạy 2 server thật (backend+frontend) nối với nhau trước khi coi implementation READY.
@@ -17,7 +42,7 @@ Theo yêu cầu user 2026-09-29 ("API đang không có document..."), đã bổ 
 ## Backend (`backend/`, NestJS + Prisma)
 Cấu trúc module đúng theo architecture: `PrismaModule`, `AuthConfigModule`, `SessionStoreModule` (custom `PrismaSessionStore`), `CsrfModule` (csrf-sync), `RateLimitModule` (@nestjs/throttler), `LocalCredentialModule` (argon2id), `TelegramBotModule` (gọi thẳng Bot API qua `fetch`, không dùng bot framework), `AccountLinkModule`, `AuditModule`, `AuthModule`.
 
-Toàn bộ 9 endpoint theo API contract đã implement: `GET /api/auth/csrf-token`, `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/telegram/start`, `GET /api/auth/telegram/status/:code`, `POST /api/auth/telegram/webhook`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/link/local`.
+Toàn bộ 8 endpoint theo API contract đã implement (r4: bỏ `POST /api/auth/telegram/webhook`, thay bằng long-polling nội bộ, xem "Cập nhật 2026-09-30" ở trên): `GET /api/auth/csrf-token`, `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/telegram/start`, `GET /api/auth/telegram/status/:code`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/link/local`.
 
 **Bằng chứng kiểm thử (đã tự chạy lại để xác minh, không chỉ tin báo cáo agent)**:
 ```
@@ -64,7 +89,7 @@ Không có sai lệch integration nào giữa 2 phần cần sửa.
 1. ~~Có Postgres thật (local hoặc Docker) → chạy `prisma migrate deploy`~~ **XONG 2026-09-29**: `docker compose up -d postgres` + `prisma migrate deploy` áp dụng migration `20260929000000_init` thành công lên Postgres thật; `docs/DATABASE.md` đã cập nhật 6 bảng PLANNED → IMPLEMENTED.
 2. Viết + chạy integration test thật (backend, chạm DB) và Supertest cho tầng HTTP. (Đã verify thủ công qua Postman/newman ở mục "API documentation" nhưng đó không thay thế test tự động trong CI.)
 3. Chạy 2 server thật (backend + frontend) nối với nhau, xác nhận luồng thật: register/login set cookie đúng, CSRF round-trip đúng. (Đã verify riêng phần backend qua Postman/newman; chưa verify cùng frontend thật.)
-4. RISK-A03 (kế thừa, chưa mitigate): manual smoke test với bot Telegram thật (BotFather) + webhook HTTPS công khai — thuộc QA gate, không phải backend/frontend-agent.
+4. RISK-A03 (r4: không còn cần webhook HTTPS công khai): vẫn cần 1 lần manual smoke test với bot Telegram thật (BotFather, chỉ cần `TELEGRAM_BOT_TOKEN`) qua long-polling — thuộc QA gate, không phải backend/frontend-agent.
 5. Quyết định `npm audit` fix trước hay sau production.
 
 ## Cập nhật 2026-09-29: refactor sang common component layer

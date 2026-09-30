@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { randomBytes, timingSafeEqual } from 'crypto';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { randomBytes, randomUUID } from 'crypto';
 import { Prisma, TelegramLoginRequest } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthConfigService } from '../config/auth-config.service';
+import { AuditService } from '../audit/audit.service';
 import { TELEGRAM_CODE_TTL_SECONDS } from '../common/constants';
-import { TelegramFrom } from './telegram-update.types';
+import { TelegramFrom, TelegramUpdate } from './telegram-update.types';
 
 export type TelegramLoginPurpose = 'LOGIN' | 'LINK';
 
@@ -26,16 +27,94 @@ export type ClaimOutcome =
   | { outcome: 'ALREADY_RESOLVED' };
 
 // TelegramBotModule is the ONLY boundary allowed to call the Telegram Bot API
-// or trust webhook payloads (architecture doc "Ranh giới an toàn"). No other
-// service should read a raw Telegram Update directly.
+// or trust its update payloads (architecture doc "Ranh giới an toàn"). No
+// other service should read a raw Telegram Update directly.
 @Injectable()
-export class TelegramBotService {
+export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TelegramBotService.name);
+
+  // In-memory only (architecture doc "Long-polling loop" — not persisted
+  // because the idempotent PENDING->CONFIRMED transition already makes
+  // reprocessing a redelivered update a safe no-op after a restart).
+  private pollingOffset: number | undefined;
+  private polling = false;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: AuthConfigService,
+    private readonly audit: AuditService,
   ) {}
+
+  // Bootstrap: drop any previously registered webhook (getUpdates refuses to
+  // work otherwise — core.telegram.org/bots/api#getupdates) then start the
+  // long-polling loop in the background.
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.deleteWebhook();
+    } catch (err) {
+      this.logger.warn(`Telegram deleteWebhook failed at bootstrap: ${(err as Error).message}`);
+    }
+    this.polling = true;
+    void this.pollLoop();
+  }
+
+  onModuleDestroy(): void {
+    this.polling = false;
+  }
+
+  private async pollLoop(): Promise<void> {
+    while (this.polling) {
+      let updates: TelegramUpdate[];
+      try {
+        updates = await this.getUpdates();
+      } catch (err) {
+        this.logger.warn(`Telegram getUpdates failed: ${(err as Error).message}`);
+        // Deliberate simplification: fixed backoff on error instead of
+        // exponential — acceptable because getUpdates itself long-polls
+        // (up to 30s), so a tight error loop is already rate-limited in
+        // the common case; this only guards the immediate-failure case
+        // (e.g. bad token) from spinning.
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        continue;
+      }
+      for (const update of updates) {
+        await this.handleUpdate(update);
+        if (update.update_id !== undefined) {
+          this.pollingOffset = update.update_id + 1;
+        }
+      }
+    }
+  }
+
+  private async getUpdates(): Promise<TelegramUpdate[]> {
+    const response = (await this.callBotApi('getUpdates', {
+      offset: this.pollingOffset,
+      timeout: 30,
+      allowed_updates: ['message'],
+    })) as { ok?: boolean; result?: TelegramUpdate[] } | null;
+    return response?.result ?? [];
+  }
+
+  private async handleUpdate(update: TelegramUpdate): Promise<void> {
+    const text = update.message?.text;
+    const from = update.message?.from;
+    const code = this.parseStartCommand(text);
+    if (!code || !from) {
+      return;
+    }
+
+    const confirmed = await this.confirmFromUpdate(code, from);
+    if (confirmed) {
+      await this.sendMessage(from.id, 'Xác nhận thành công, quay lại trình duyệt để tiếp tục.');
+      await this.audit.record({
+        action: 'TELEGRAM_LOGIN_CONFIRMED',
+        result: 'SUCCESS',
+        requestCorrelationId: randomUUID(),
+      });
+    } else {
+      await this.sendMessage(from.id, 'Mã không hợp lệ hoặc đã hết hạn, vui lòng thử lại từ trình duyệt.');
+    }
+  }
 
   // COND-A06 resolved: 256-bit entropy, base64url so it satisfies Telegram's
   // deep-link start-parameter constraint (A-Za-z0-9_- and <=64 chars) naturally.
@@ -83,22 +162,11 @@ export class TelegramBotService {
     return match ? match[1] : null;
   }
 
-  // Constant-time-ish comparison of the webhook secret token. Length is
-  // checked first (leaks length via timing, deliberate simplification —
-  // acceptable because both sides are high-entropy fixed-format secrets set
-  // by the operator, not guessable strings).
-  verifyWebhookSecret(headerValue: string | undefined): boolean {
-    const expected = this.config.telegramWebhookSecretToken;
-    if (!headerValue || headerValue.length !== expected.length) {
-      return false;
-    }
-    return timingSafeEqual(Buffer.from(headerValue), Buffer.from(expected));
-  }
-
   // Atomic PENDING -> CONFIRMED transition. The WHERE clause (not a prior
-  // read) is what makes this safe against Telegram retrying the same
-  // webhook delivery — a duplicate call simply matches 0 rows.
-  async confirmFromWebhook(code: string, from: TelegramFrom): Promise<boolean> {
+  // read) is what makes this safe against getUpdates redelivering the same
+  // update after a restart (offset not yet acked) — a duplicate call simply
+  // matches 0 rows.
+  async confirmFromUpdate(code: string, from: TelegramFrom): Promise<boolean> {
     const result = await this.prisma.telegramLoginRequest.updateMany({
       where: { code, status: 'PENDING', expiresAt: { gt: new Date() } },
       data: {
@@ -228,10 +296,7 @@ export class TelegramBotService {
     return this.callBotApi('sendMessage', { chat_id: chatId, text });
   }
 
-  setWebhook(): Promise<unknown> {
-    return this.callBotApi('setWebhook', {
-      url: this.config.telegramWebhookUrl,
-      secret_token: this.config.telegramWebhookSecretToken,
-    });
+  deleteWebhook(): Promise<unknown> {
+    return this.callBotApi('deleteWebhook', {});
   }
 }

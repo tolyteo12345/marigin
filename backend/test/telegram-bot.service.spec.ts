@@ -1,6 +1,7 @@
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthConfigService } from '../src/config/auth-config.service';
+import { AuditService } from '../src/audit/audit.service';
 import { TelegramBotService } from '../src/telegram-bot/telegram-bot.service';
 import { TelegramLoginRequest } from '@prisma/client';
 
@@ -26,17 +27,18 @@ function makeRequest(overrides: Partial<TelegramLoginRequest> = {}): TelegramLog
 describe('TelegramBotService', () => {
   let prisma: DeepMockProxy<PrismaService>;
   let config: DeepMockProxy<AuthConfigService>;
+  let audit: DeepMockProxy<AuditService>;
   let service: TelegramBotService;
 
   beforeEach(() => {
     prisma = mockDeep<PrismaService>();
     config = mockDeep<AuthConfigService>();
-    (config as unknown as { telegramWebhookSecretToken: string }).telegramWebhookSecretToken = 'super-secret-token';
+    audit = mockDeep<AuditService>();
     (config as unknown as { telegramBotUsername: string }).telegramBotUsername = 'my_bot';
     // $transaction: mockDeep does not auto-run the callback, wire it manually
     // to invoke the callback with the same mocked client (jest-mock-extended pattern).
     (prisma.$transaction as unknown as jest.Mock).mockImplementation((cb: (tx: PrismaService) => unknown) => cb(prisma));
-    service = new TelegramBotService(prisma, config);
+    service = new TelegramBotService(prisma, config, audit);
   });
 
   describe('generateCode (COND-A06: 256-bit entropy, base64url)', () => {
@@ -76,25 +78,11 @@ describe('TelegramBotService', () => {
     });
   });
 
-  describe('verifyWebhookSecret (COND-A05)', () => {
-    it('accepts the exact configured secret token', () => {
-      expect(service.verifyWebhookSecret('super-secret-token')).toBe(true);
-    });
-
-    it('rejects a missing header', () => {
-      expect(service.verifyWebhookSecret(undefined)).toBe(false);
-    });
-
-    it('rejects a wrong token', () => {
-      expect(service.verifyWebhookSecret('wrong-token-wrong-token')).toBe(false);
-    });
-  });
-
-  describe('confirmFromWebhook (atomic PENDING -> CONFIRMED)', () => {
+  describe('confirmFromUpdate (atomic PENDING -> CONFIRMED)', () => {
     it('confirms when exactly one PENDING row matches (first delivery)', async () => {
       prisma.telegramLoginRequest.updateMany.mockResolvedValueOnce({ count: 1 });
 
-      const confirmed = await service.confirmFromWebhook('code-1', { id: 555, username: 'u' });
+      const confirmed = await service.confirmFromUpdate('code-1', { id: 555, username: 'u' });
 
       expect(confirmed).toBe(true);
       expect(prisma.telegramLoginRequest.updateMany).toHaveBeenCalledWith({
@@ -103,10 +91,10 @@ describe('TelegramBotService', () => {
       });
     });
 
-    it('does not re-confirm on a duplicate webhook delivery (0 rows matched)', async () => {
+    it('does not re-confirm on a redelivered update (0 rows matched)', async () => {
       prisma.telegramLoginRequest.updateMany.mockResolvedValueOnce({ count: 0 });
 
-      const confirmed = await service.confirmFromWebhook('code-1', { id: 555 });
+      const confirmed = await service.confirmFromUpdate('code-1', { id: 555 });
 
       expect(confirmed).toBe(false);
     });

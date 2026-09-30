@@ -16,10 +16,6 @@
     {
       "key": "telegramCode",
       "value": ""
-    },
-    {
-      "key": "telegramWebhookSecret",
-      "value": ""
     }
   ],
   "item": [
@@ -315,39 +311,7 @@
                 "{{telegramCode}}"
               ]
             },
-            "description": "PENDING | CONFIRMED | CLAIMED | REJECTED | EXPIRED. Gọi lặp lại (client poll ~2s) tới khi CLAIMED/REJECTED/EXPIRED."
-          }
-        },
-        {
-          "name": "Webhook (Telegram infra only, manual/ops test)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "x-telegram-bot-api-secret-token",
-                "value": "{{telegramWebhookSecret}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"update_id\": 1,\n  \"message\": {\n    \"text\": \"/start {{telegramCode}}\",\n    \"from\": { \"id\": 123456789, \"username\": \"example_user\", \"first_name\": \"Example\" }\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/telegram/webhook",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "telegram",
-                "webhook"
-              ]
-            },
-            "description": "Không phải API cho client — Telegram Bot API gọi endpoint này. Không xuất hiện trong Swagger public doc (@ApiExcludeEndpoint). Giữ ở đây để test thủ công/ops mà không cần bot thật. Luôn trả 200 kể cả code không hợp lệ/hết hạn."
+            "description": "PENDING | CONFIRMED | CLAIMED | REJECTED | EXPIRED. Gọi lặp lại (client poll ~2s) tới khi CLAIMED/REJECTED/EXPIRED. Backend nhận /start <code> qua long-polling getUpdates nội bộ (không còn endpoint webhook để test thủ công qua Postman — cần bot Telegram thật để exercise bước này)."
           }
         }
       ]
