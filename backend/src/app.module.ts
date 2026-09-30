@@ -9,6 +9,7 @@ import { TelegramBotModule } from './telegram-bot/telegram-bot.module';
 import { AccountLinkModule } from './account-link/account-link.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { BinanceConnectionModule } from './binance-connection/binance-connection.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuthModule } from './auth/auth.module';
     TelegramBotModule,
     AccountLinkModule,
     AuthModule,
+    BinanceConnectionModule,
   ],
 })
 export class AppModule {}

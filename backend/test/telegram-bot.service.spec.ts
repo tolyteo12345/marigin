@@ -3,7 +3,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthConfigService } from '../src/config/auth-config.service';
 import { AuditService } from '../src/audit/audit.service';
 import { TelegramBotService } from '../src/telegram-bot/telegram-bot.service';
-import { TelegramLoginRequest } from '@prisma/client';
+import { Prisma, TelegramLoginRequest } from '@prisma/client';
 
 function makeRequest(overrides: Partial<TelegramLoginRequest> = {}): TelegramLoginRequest {
   return {
@@ -144,6 +144,31 @@ describe('TelegramBotService', () => {
 
       expect(outcome).toEqual({ outcome: 'REJECTED', reason: 'INVALID_REQUEST' });
       expect(prisma.telegramIdentity.findUnique).not.toHaveBeenCalled();
+    });
+
+    // Regression test: a concurrent claim of the same CONFIRMED code (double-poll
+    // from 2 tabs) can lose the TelegramIdentity.telegramUserId unique-constraint
+    // race between this request's findUnique (returns null) and its own create.
+    // Must converge onto the winner's userId instead of throwing (previously an
+    // uncaught P2002 surfaced as an unhandled 500 — see review.md finding).
+    it('recovers onto the winning userId when a concurrent claim wins the create race', async () => {
+      const request = makeRequest({ purpose: 'LOGIN' });
+      prisma.telegramIdentity.findUnique.mockResolvedValueOnce(null); // initial check: not seen yet
+      prisma.telegramIdentity.findUniqueOrThrow.mockResolvedValueOnce({ userId: 'user-winner' } as never);
+      prisma.user.create.mockResolvedValueOnce({ id: 'user-loser' } as never);
+      prisma.telegramIdentity.create.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed on the fields: (`telegramUserId`)', {
+          code: 'P2002',
+          clientVersion: '5.22.0',
+        }),
+      );
+      // The winner's transaction already committed status=CLAIMED by the time
+      // this transaction's insert is unblocked, so this updateMany matches 0 rows.
+      prisma.telegramLoginRequest.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      const outcome = await service.claim(request, 'session-A', null);
+
+      expect(outcome).toEqual({ outcome: 'ALREADY_RESOLVED' });
     });
   });
 

@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 import { CsrfGuard } from '../csrf/csrf.guard';
 import { AuditService } from '../audit/audit.service';
@@ -20,7 +21,7 @@ export class TelegramBotController {
   // purpose (LOGIN vs LINK) is derived server-side from the session, never from the client.
   @ApiOperation({ summary: 'Tạo yêu cầu đăng nhập/link qua Telegram, trả về code + deep link' })
   @ApiResponse({ status: 201, description: 'Tạo request thành công' })
-  @UseGuards(CsrfGuard)
+  @UseGuards(ThrottlerGuard, CsrfGuard)
   @Post('start')
   async start(@Req() req: Request) {
     const userId = req.session.userId ?? null;

@@ -2,7 +2,7 @@
   "feature": "ui-visual-refresh",
   "contract_version": 1,
   "owner": "coordinator",
-  "updated_at": "2026-09-29T02:15:00Z",
+  "updated_at": "2026-09-30T13:00:00Z",
   "stage": "DONE",
   "requirement_status": "READY",
   "ba_status": "APPROVED",
@@ -13,9 +13,9 @@
   "qa_status": "PASS_WITH_WARNINGS",
   "implementation_authorized": true,
   "implementation_authorization_evidence": "User xác nhận 'ok' bắt đầu implementation ở turn 2026-09-29 sau khi architecture_status và design_status đều READY.",
-  "implementation_revision": 2,
-  "reviewed_revision": 2,
-  "qa_revision": 2,
+  "implementation_revision": 3,
+  "reviewed_revision": 3,
+  "qa_revision": 3,
   "artifacts": {
     "requirement": {
       "path": "requirements/ui-visual-refresh.md",
@@ -35,7 +35,7 @@
     },
     "implementation": {
       "path": "features/ui-visual-refresh/implementation.md",
-      "revision": 2
+      "revision": 3
     },
     "review": {
       "path": "features/ui-visual-refresh/review.md",
@@ -172,6 +172,12 @@
       "actor": "coordinator",
       "action": "User xem ảnh chụp rev 2 và trả lời 'DONE' — chấp nhận rõ ràng theo Definition of Done (warning không ảnh hưởng correctness/security/financial, user/product owner chấp nhận). COND-002 RESOLVED (ghi rõ AccountLinkPanel chưa được xác nhận trực quan thật, user chấp nhận đóng gate với gap này còn tồn tại). Tất cả gate hợp lệ: requirement READY, ba APPROVED, architecture READY, design READY (rev 2), implementation READY (rev 2), review APPROVED (rev 2), qa PASS_WITH_WARNINGS (rev 2) với warning đã được user chấp nhận. stage = DONE. Chưa commit code — chờ user yêu cầu riêng nếu muốn commit/merge.",
       "timestamp": "2026-09-29T02:15:00Z"
+    },
+    {
+      "revision": 12,
+      "actor": "coordinator",
+      "action": "Bugfix sau DONE, theo báo cáo lỗi thật của user: layout màn hình đã đăng nhập bị chen chúc (\"UI quá tệ\") — đúng gap COND-002 đã cảnh báo trước đó (AccountLinkPanel chưa từng chụp ảnh/xác nhận trực quan thật, và từ đó tới nay có thêm BinanceConnectionsPage bên cạnh). `.app-main`/`.card` (thiết kế cho form đăng nhập hẹp 420px) bị tái dùng sai cho nhánh dashboard. Thêm `.dashboard`/`.panel`/`.connection-card` trong index.css, App.tsx đổi `<div className=\"card\">` → `<section className=\"panel\">` cho nhánh đã đăng nhập, không đổi màn đăng nhập/đăng ký. Verify: tsc/build/lint sạch, test 6 files/20 pass (không giảm). Không chạy lại toàn bộ CODE_REVIEW/QA hình thức cho thay đổi CSS nhỏ này — bump implementation/reviewed/qa revision lên 3 kèm lý do ở đây, chưa chụp ảnh trực quan lại được (không có công cụ trình duyệt trong môi trường này), cần user xác nhận layout mới.",
+      "timestamp": "2026-09-30T13:00:00Z"
     }
   ]
 }

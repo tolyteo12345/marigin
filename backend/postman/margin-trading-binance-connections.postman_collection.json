@@ -1,0 +1,184 @@
+{
+  "info": {
+    "name": "Margin Trading — binance-read-only-connection",
+    "description": "Postman collection cho API của feature binance-read-only-connection (add/list/verify/account-snapshot/revoke Binance connection). Sinh thủ công khớp với Swagger doc tại GET /api/docs-json — cập nhật cả hai khi API contract đổi. Mọi endpoint yêu cầu session đã đăng nhập (feature user-authentication) — chạy request 'Setup: register a session' trước, hoặc dùng session đã có từ collection margin-trading-auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "csrfToken", "value": "" },
+    { "key": "connectionId", "value": "" },
+    { "key": "setupEmail", "value": "postman-binance-test@example.com" }
+  ],
+  "item": [
+    {
+      "name": "Setup: register a session",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{setupEmail}}\",\n  \"password\": \"a-strong-password\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+        "description": "Chạy 1 lần trước khi test các request binance-connections bên dưới, để có session đã đăng nhập (req.user.id). 200 = tạo mới + đăng nhập. 409 = email đã tồn tại — chạy 'Setup: login' thay thế."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup: login (if already registered)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{setupEmail}}\",\n  \"password\": \"a-strong-password\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "binance-connections",
+      "item": [
+        {
+          "name": "Add connection (verify đồng bộ)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Tài khoản chính\",\n  \"apiKey\": \"REPLACE_WITH_READ_ONLY_API_KEY\",\n  \"apiSecret\": \"REPLACE_WITH_API_SECRET\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/binance-connections", "host": ["{{baseUrl}}"], "path": ["binance-connections"] },
+            "description": "201 = connection tạo xong, verify chạy đồng bộ trong cùng request. status trả về tuỳ kết quả verify (VERIFIED/INVALID/UNSUPPORTED_ACCOUNT_MODE/VERIFY_UNKNOWN) — không phải lỗi HTTP. CHỈ dùng API key có quyền đọc (Enable Reading), KHÔNG dùng key có quyền rút tiền/giao dịch kể cả để test."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+                  "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": ["const body = pm.response.json();", "if (body.id) { pm.collectionVariables.set('connectionId', body.id); }"] }
+            }
+          ]
+        },
+        {
+          "name": "List connections",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/binance-connections", "host": ["{{baseUrl}}"], "path": ["binance-connections"] },
+            "description": "200 = danh sách connection của session hiện tại, không gồm đã revoke, không có secret."
+          }
+        },
+        {
+          "name": "Get connection by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/binance-connections/{{connectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["binance-connections", "{{connectionId}}"]
+            },
+            "description": "200 = metadata. 404 = không tồn tại hoặc không thuộc session hiện tại (không phân biệt, chống IDOR)."
+          }
+        },
+        {
+          "name": "Re-verify connection",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "x-csrf-token", "value": "{{csrfToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/binance-connections/{{connectionId}}/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["binance-connections", "{{connectionId}}", "verify"]
+            },
+            "description": "200 = connection sau verify lại (on-demand)."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+                  "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get account snapshot",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/binance-connections/{{connectionId}}/account-snapshot",
+              "host": ["{{baseUrl}}"],
+              "path": ["binance-connections", "{{connectionId}}", "account-snapshot"]
+            },
+            "description": "200 = userAssets + fetchedAt (tươi, không cache), chỉ khi status=VERIFIED (403 nếu chưa). 401 = key không còn hợp lệ (đã bị flip sang INVALID). 429 = Binance rate limit (kèm retryAfterSeconds). 503 = timeout/mất kết nối tới Binance."
+          }
+        },
+        {
+          "name": "Revoke connection",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "x-csrf-token", "value": "{{csrfToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/binance-connections/{{connectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["binance-connections", "{{connectionId}}"]
+            },
+            "description": "200 = revoked, secret null hoá ngay trong DB, biến mất khỏi List connections."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const req = { url: pm.collectionVariables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+                  "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

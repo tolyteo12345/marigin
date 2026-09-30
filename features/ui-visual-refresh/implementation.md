@@ -67,5 +67,12 @@ Không còn warning nào khác.
 ## Việc còn lại trước CODE_REVIEW
 Không còn cho 4/5 màn hình (đã có ảnh chụp thật, xem "Xác nhận trực quan"). AccountLinkPanel cần user tự xác nhận sau khi đăng nhập thật — không phải blocker cho review bắt đầu vì cấu trúc CSS giống hệt các màn hình đã chụp.
 
+## Cập nhật 2026-09-30: bugfix layout màn hình đã đăng nhập
+User xác nhận đúng rủi ro đã ghi ở "Giới hạn — chưa verify được" phía trên: màn hình đã đăng nhập ("UI quá tệ") — nguyên nhân là `.app-main`/`.card` (thiết kế cho 1 form đăng nhập/đăng ký hẹp, `max-width:420px`) bị tái dùng nguyên trạng cho nhánh đã đăng nhập khi `binance-read-only-connection` thêm `BinanceConnectionsPage` bên cạnh `AccountLinkPanel` — 2 `.card` 420px xếp trong `.app-main` (flex row mặc định, không set `flex-direction`) bị chen chúc/xếp cạnh nhau thay vì một dashboard rõ ràng.
+
+Sửa: thêm class mới trong `index.css` — `.dashboard` (container rộng `max-width:960px`, `align-self:flex-start` để không bị `.app-main`'s `align-items:center` canh giữa theo chiều dọc gây nội dung dài bị lệch), `.panel` (thay `.card` cho từng section lớn — Liên kết tài khoản, Kết nối Binance — giữ style border/shadow tương tự nhưng full-width thay vì 420px), `.connection-card` (1 dòng border đơn giản cho mỗi `BinanceConnection`, không lồng shadow kép bên trong `.panel`). `App.tsx` nhánh `isLoggedIn` đổi `<div className="card">` → `<section className="panel">`. Không đổi `.card`/màn hình đăng nhập-đăng ký (user không phàn nàn về màn đó).
+
+Verify: `npx tsc -b`, `npm run build`, `npm test -- --run` (20/20 pass, không đổi so với trước fix layout vì CSS thuần không có unit test riêng cho style — chỉ có test cấu trúc/hành vi component), `npm run lint` sạch (không warning mới). Chưa chụp ảnh trực quan lại được (không có công cụ trình duyệt trong môi trường này) — cần user xác nhận layout mới đã ổn hay cần chỉnh thêm.
+
 ## Đề xuất trạng thái
 implementation_status: READY.

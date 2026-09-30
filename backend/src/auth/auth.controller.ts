@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from '../local-credential/dto/register.dto';
@@ -16,7 +17,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Đăng ký tài khoản bằng email/password (cần CSRF token)' })
   @ApiResponse({ status: 200, description: 'Đăng ký thành công, session đã được set' })
   @ApiResponse({ status: 409, description: 'Email đã tồn tại' })
-  @UseGuards(CsrfGuard)
+  @UseGuards(ThrottlerGuard, CsrfGuard)
   @Post('register')
   @HttpCode(200)
   async register(@Body() dto: RegisterDto, @Req() req: Request): Promise<{ ok: true }> {
@@ -27,7 +28,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Đăng nhập bằng email/password (cần CSRF token)' })
   @ApiResponse({ status: 200, description: 'Đăng nhập thành công, session đã được set' })
   @ApiResponse({ status: 401, description: 'Sai email/password hoặc tài khoản đang bị khoá' })
-  @UseGuards(CsrfGuard)
+  @UseGuards(ThrottlerGuard, CsrfGuard)
   @Post('login')
   @HttpCode(200)
   async login(@Body() dto: LoginDto, @Req() req: Request): Promise<{ ok: true }> {
