@@ -2,7 +2,7 @@
   "feature": "user-authentication",
   "contract_version": 1,
   "owner": "coordinator",
-  "updated_at": "2026-09-29T20:00:00Z",
+  "updated_at": "2026-09-30T00:00:00Z",
   "stage": "IMPLEMENTATION",
   "requirement_status": "READY",
   "ba_status": "APPROVED_WITH_CONDITIONS",
@@ -12,22 +12,22 @@
   "review_status": "NOT_STARTED",
   "qa_status": "NOT_STARTED",
   "implementation_authorized": true,
-  "implementation_authorization_evidence": "User instruction 2026-09-29: \"implement\" — explicit yêu cầu bắt đầu implementation, gửi sau khi đã xem architecture/user-authentication.md (mở trong IDE) và sau khi mọi OQ-A05..A10 đã RESOLVED, không còn blocker/open question nghiệp vụ ảnh hưởng thiết kế.",
-  "implementation_revision": "sha256:e9a557d5f89eb89972f5f994f4f5fe309dd43a5f896e3bbf531ecd2f2dc717fa",
+  "implementation_authorization_evidence": "User instruction 2026-09-29: \"implement\" (bản gốc, webhook) — explicit yêu cầu bắt đầu implementation. Bổ sung 2026-09-30: user xác nhận qua AskUserQuestion đổi cơ chế Telegram sang long-polling và \"Đồng ý, tiến hành\" viết lại architecture + sửa code, sau khi đã xem thiết kế đề xuất (deleteWebhook + getUpdates loop, tái dùng state machine idempotent) và evidence EV-012.",
+  "implementation_revision": "sha256:d9c25835c7db339bdba9cc1a905a1922a66b189dec400444ad1f82b6f6ff6b5b",
   "reviewed_revision": null,
   "qa_revision": null,
   "artifacts": {
     "requirement": {
       "path": "requirements/user-authentication.md",
-      "revision": "sha256:1702d36a21ab7c886ad4287355ae3f2abd39a7484317783c4b7d27042638883e"
+      "revision": "sha256:124bbe4476ad90aacc6741e35a60f19afc64ace61382dc012d61c102b26045e6"
     },
     "ba": {
       "path": "analysis/user-authentication-feasibility.md",
-      "revision": "sha256:f5e8a021b4023d2df33751ff8ef324e1a554d444a22fc5eebb6f30b4ab9c0982"
+      "revision": "sha256:002144f83af3c6ec2eadb91b74d22b42f0bdbc38fff3c6fb8b0ef56a10f0e46b"
     },
     "architecture": {
       "path": "architecture/user-authentication.md",
-      "revision": "sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b"
+      "revision": "sha256:d9f767aba0da91da047f38aabcdf51393ec8bade05aa6be14e31233e7ed3fd90"
     },
     "design": {
       "path": "design/user-authentication.md",
@@ -35,7 +35,7 @@
     },
     "implementation": {
       "path": "features/user-authentication/implementation.md",
-      "revision": "sha256:e9a557d5f89eb89972f5f994f4f5fe309dd43a5f896e3bbf531ecd2f2dc717fa"
+      "revision": "sha256:d9c25835c7db339bdba9cc1a905a1922a66b189dec400444ad1f82b6f6ff6b5b"
     },
     "review": {
       "path": "features/user-authentication/review.md",
@@ -141,8 +141,8 @@
       "id": "RISK-A03",
       "description": "Luồng Telegram (bot deep-link) cần 1 bot Telegram thật (đăng ký qua BotFather) với webhook trỏ về domain HTTPS công khai để chạy end-to-end và test thật — chưa có bot/hạ tầng thật thì chỉ test được bằng fixture giả lập webhook.",
       "owner": "user",
-      "status": "OPEN",
-      "mitigation": "User sẽ tự tạo bot + quản lý token qua env (OQ-A10 resolved). Manual smoke test với bot thật vẫn cần thực hiện trước khi coi DONE, evidence ghi ở qa/user-authentication.md.",
+      "status": "RESOLVED",
+      "mitigation": "RESOLVED 2026-09-30: đổi cơ chế nhận update từ webhook sang long-polling getUpdates (EV-012) theo yêu cầu user sau khi phát hiện webhook không hoạt động được ở local dev — loại bỏ hoàn toàn nhu cầu domain/webhook HTTPS công khai ở mọi môi trường. Chỉ còn cần bot thật (đã có, OQ-A10 resolved) để chạy manual smoke test trước DONE, evidence ghi ở qa/user-authentication.md.",
       "accepted_by": null
     }
   ],
@@ -199,8 +199,8 @@
         "ARCHITECTURE"
       ],
       "due_gate": "ARCHITECTURE",
-      "status": "RESOLVED",
-      "evidence": "architecture/user-authentication.md mục 'Telegram webhook trust boundary' + API contracts POST /api/auth/telegram/webhook."
+      "status": "SUPERSEDED",
+      "evidence": "SUPERSEDED 2026-09-30: đổi sang long-polling, không còn endpoint webhook nào để verify header. Bảo vệ TELEGRAM_BOT_TOKEN qua env (đã có ở BR-013) là tuyến phòng thủ còn lại — xem architecture/user-authentication.md mục 'Telegram long-polling trust boundary'."
     },
     {
       "id": "COND-A06",
@@ -212,6 +212,17 @@
       "due_gate": "ARCHITECTURE",
       "status": "RESOLVED",
       "evidence": "architecture/user-authentication.md: TelegramLoginRequest.code = base64url(crypto.randomBytes(32)), expiresAt 300s, initiatorSessionSid bind, atomic state machine PENDING->CONFIRMED->CLAIMED."
+    },
+    {
+      "id": "COND-A12",
+      "description": "Thiết kế polling loop getUpdates phải deleteWebhook trước khi bắt đầu poll, tự tính lại offset sau mỗi response, và tái sử dụng đúng state machine idempotent hiện có để an toàn khi update bị gửi lại sau restart.",
+      "owner": "architect-agent",
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/user-authentication.md mục 'Long-polling loop': deleteWebhook() lúc onModuleInit, offset in-memory tự tính lại = max(update_id)+1, xử lý update dùng chung UPDATE...WHERE status='PENDING'. backend/src/telegram-bot/telegram-bot.service.ts implement đúng."
     }
   ],
   "warnings": [
@@ -353,6 +364,41 @@
       "transition": "IMPLEMENTATION (IN_PROGRESS, không đổi stage) — design_status NOT_STARTED -> READY (retrofit)",
       "reason": "User yêu cầu retro-design cho user-authentication để đóng BLOCKER-DESIGN-001. Viết design/user-authentication.md mô tả 5 màn hình/trạng thái (LoginForm, RegisterForm, TelegramLoginButton state machine, shell đã đăng nhập, AccountLinkPanel) khớp đúng code hiện có (đã refactor common layer), map vào 4 common component (TextField/Button/InlineAlert/InlineStatus), ghi accessibility notes (label association, role alert/status) và xác nhận không có financial action/auto-chain nào trong feature. Không đổi code, chỉ viết spec hồi tố. BLOCKER-DESIGN-001 RESOLVED.",
       "evidence": "design/user-authentication.md sha256:cd74f435bd5496df997087f641e636fb62196861a5e8a1da54b13b9288d99969"
+    },
+    {
+      "timestamp": "2026-09-30T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "IMPLEMENTATION -> REQUIREMENT (invalidate: ba_status/architecture_status reset, implementation/review/qa reset)",
+      "reason": "User báo bug: click Start trên bot Telegram (deep link https://t.me/marginlocalbot?start=<code>) nhưng database không update — chẩn đoán ra nguyên nhân là TELEGRAM_WEBHOOK_URL vẫn là placeholder (Telegram không gửi được webhook về localhost, đúng RISK-A03 đã ghi nhận từ trước nhưng chưa bao giờ mitigate thật). User yêu cầu đổi hẳn sang long-polling thay vì chỉ dựng tunnel tạm. Vì BR-009 chốt cứng cơ chế 'webhook' trong requirement, đổi sang long-polling là thay đổi nội dung requirement (không chỉ chi tiết kỹ thuật của architecture) → theo Invalidation rule của workflows/feature-development.md, reset ba/architecture/implementation/review/qa để làm lại đúng gate.",
+      "evidence": "User instruction 2026-09-30 (báo lỗi + xác nhận hướng long-polling qua AskUserQuestion: 'Đề xuất chính thức đổi sang polling qua architect-agent gate')."
+    },
+    {
+      "timestamp": "2026-09-30T00:05:00Z",
+      "actor": "coordinator (product-requirement-agent role)",
+      "transition": "REQUIREMENT r3 -> REQUIREMENT r4 (requirement_status READY)",
+      "reason": "Cập nhật BR-009: cơ chế nhận /start <code> đổi từ webhook sang long-polling getUpdates (không cần domain HTTPS công khai). Cập nhật edge cases liên quan (bỏ 'webhook forgery', thêm 'bot token bị lộ' + 'update redelivery sau restart') và OQ-A03 (RESOLVED, xác nhận qua EV-012). Không đổi bất kỳ business rule nào khác (BR-001..BR-008, BR-010..BR-016 giữ nguyên).",
+      "evidence": "requirements/user-authentication.md r4-2026-09-30 sha256:124bbe4476ad90aacc6741e35a60f19afc64ace61382dc012d61c102b26045e6"
+    },
+    {
+      "timestamp": "2026-09-30T00:10:00Z",
+      "actor": "coordinator (ba-feasibility-agent role)",
+      "transition": "REQUIREMENT r4 -> BA_FEASIBILITY (ba_status APPROVED_WITH_CONDITIONS, dựa trên r4)",
+      "reason": "Verify getUpdates bằng tài liệu chính thức core.telegram.org/bots/api#getupdates (EV-012, WebFetch trực tiếp, không dùng trí nhớ): long polling, offset/limit/timeout/allowed_updates, 'sẽ không hoạt động nếu đã setWebhook', phải tự tính lại offset để tránh nhận trùng. COND-A05 (webhook secret header) SUPERSEDED — không còn endpoint để verify. Thêm COND-A12 (deleteWebhook trước khi poll, tự tính offset, tái dùng state machine idempotent). RISK-A03 RESOLVED — không còn cần domain/webhook HTTPS công khai ở bất kỳ môi trường nào.",
+      "evidence": "analysis/user-authentication-feasibility.md sha256:002144f83af3c6ec2eadb91b74d22b42f0bdbc38fff3c6fb8b0ef56a10f0e46b; EV-012 (core.telegram.org/bots/api#getupdates, verified 2026-09-30)"
+    },
+    {
+      "timestamp": "2026-09-30T00:15:00Z",
+      "actor": "coordinator (architect-agent role)",
+      "transition": "BA_FEASIBILITY -> ARCHITECTURE (architecture_status READY, dựa trên r4)",
+      "reason": "Thay 'setWebhook lúc bootstrap + POST /api/auth/telegram/webhook' bằng 'deleteWebhook lúc onModuleInit + vòng lặp long-polling getUpdates nền' trong TelegramBotModule. Xoá endpoint webhook khỏi API contracts, bỏ ngoại lệ CSRF tương ứng (không còn ngoại lệ nào). Thêm mục 'Long-polling loop' mô tả offset in-memory, deleteWebhook trước khi poll, tái sử dụng nguyên vẹn state machine/idempotent UPDATE...WHERE status='PENDING' đã có (không cần dedup mới). Đổi 'Telegram webhook trust boundary' thành 'Telegram long-polling trust boundary' (tuyến phòng thủ duy nhất còn lại: bảo vệ TELEGRAM_BOT_TOKEN). Không đổi schema Prisma (TelegramLoginRequest/AuthAuditLog không đổi cột/bảng) nên không cần sửa docs/DATABASE.md. Không tự chuyển sang implement mà không hỏi — user đã xác nhận trước (AskUserQuestion 'Đồng ý, tiến hành') nên coordinator tiếp tục dispatch sửa code trong cùng phiên.",
+      "evidence": "architecture/user-authentication.md sha256:d9f767aba0da91da047f38aabcdf51393ec8bade05aa6be14e31233e7ed3fd90"
+    },
+    {
+      "timestamp": "2026-09-30T00:20:00Z",
+      "actor": "coordinator (backend-agent role)",
+      "transition": "IMPLEMENTATION (IN_PROGRESS, không đổi stage) — code cập nhật theo architecture r4",
+      "reason": "backend/src/telegram-bot/telegram-bot.service.ts: TelegramBotService implement OnModuleInit/OnModuleDestroy, deleteWebhook() + pollLoop() (getUpdates offset/timeout=30/allowed_updates), handleUpdate() gộp logic xử lý update (trước ở controller) + ghi AuthAuditLog, đổi tên confirmFromWebhook -> confirmFromUpdate, xoá verifyWebhookSecret/setWebhook, thêm dependency AuditService. telegram-bot.controller.ts: xoá endpoint POST /api/auth/telegram/webhook. main.ts: bỏ gọi setWebhook() thủ công, thêm app.enableShutdownHooks(). auth-config.service.ts: xoá telegramWebhookUrl/telegramWebhookSecretToken. .env/.env.example: xoá 2 biến webhook. Postman collection: xoá request Webhook + variable telegramWebhookSecret. README: cập nhật chỉ cần TELEGRAM_BOT_TOKEN. Cập nhật test/telegram-bot.service.spec.ts (bỏ describe verifyWebhookSecret, đổi tên confirmFromWebhook->confirmFromUpdate, mock AuditService). Đã tự verify lại (không chỉ tin báo cáo): npx tsc -b --noEmit sạch, npx nest build sạch, npx jest 4 suites/32 tests pass (35 - 3 test verifyWebhookSecret đã xoá). Frontend không đổi (không chạm cơ chế server-side). implementation_status giữ IN_PROGRESS (chưa chạy lại integration test thật với Postgres/bot thật cho luồng long-polling — vẫn là việc còn lại có từ trước, xem implementation.md).",
+      "evidence": "features/user-authentication/implementation.md sha256:d9c25835c7db339bdba9cc1a905a1922a66b189dec400444ad1f82b6f6ff6b5b; backend/test (4 suites, 32 tests, verified 2026-09-30); backend build (tsc -b + nest build, verified 2026-09-30)"
     }
   ]
 }

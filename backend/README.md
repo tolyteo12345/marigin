@@ -13,7 +13,7 @@ NestJS + Prisma backend for the `user-authentication` feature. See `architecture
    ```
    cp .env.example .env
    ```
-   The default `DATABASE_URL` in `.env.example` already matches `docker-compose.yml` credentials (`user` / `password` / `margin_trading` on `localhost:5432`) — no edit needed for local Postgres. You still need a real `TELEGRAM_BOT_TOKEN` / `TELEGRAM_WEBHOOK_SECRET_TOKEN` to exercise the Telegram flow end-to-end.
+   The default `DATABASE_URL` in `.env.example` already matches `docker-compose.yml` credentials (`user` / `password` / `margin_trading` on `localhost:5432`) — no edit needed for local Postgres. You still need a real `TELEGRAM_BOT_TOKEN` (from BotFather) to exercise the Telegram flow end-to-end — no webhook URL/domain needed, the backend receives `/start <code>` via long-polling.
 4. Apply the migration (schema not yet applied to any real database):
    ```
    npm run prisma:migrate:deploy

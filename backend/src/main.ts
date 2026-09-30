@@ -1,13 +1,17 @@
 import 'reflect-metadata';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { TelegramBotService } from './telegram-bot/telegram-bot.service';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Needed so TelegramBotService.onModuleDestroy() actually runs on SIGTERM
+  // and stops the long-polling loop (architecture doc "Long-polling loop"
+  // step 5) instead of only firing on an explicit app.close().
+  app.enableShutdownHooks();
 
   // Required for secure cookies to work correctly behind a reverse proxy in
   // production (architecture doc "Session cookie" note, EV-004).
@@ -16,8 +20,8 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  // Swagger UI/JSON off in production: this documents internal contracts
-  // (including the Telegram webhook shape), not something to expose publicly.
+  // Swagger UI/JSON off in production: this documents internal contracts,
+  // not something to expose publicly.
   if (process.env.NODE_ENV !== 'production') {
     const document = SwaggerModule.createDocument(
       app,
@@ -31,15 +35,9 @@ async function bootstrap(): Promise<void> {
     SwaggerModule.setup('api/docs', app, document);
   }
 
-  // Registers TELEGRAM_WEBHOOK_URL + secret token with Telegram at startup
-  // (architecture doc: TelegramBotModule "setWebhook lúc bootstrap"). Failure
-  // here is logged, not fatal, so the app can still start in environments
-  // without a real bot configured (e.g. running unit tests / local dev).
-  try {
-    await app.get(TelegramBotService).setWebhook();
-  } catch (err) {
-    Logger.warn(`Telegram setWebhook failed at bootstrap: ${(err as Error).message}`, 'Bootstrap');
-  }
+  // TelegramBotService.onModuleInit() handles deleteWebhook() + starting the
+  // long-polling loop itself (architecture doc "Long-polling loop") — no
+  // manual wiring needed here anymore.
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3000;
   await app.listen(port);
