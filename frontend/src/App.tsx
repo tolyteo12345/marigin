@@ -1,22 +1,50 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AccountLinkPanel } from './components/AccountLinkPanel';
 import { Button } from './components/common';
 import { LoginForm } from './components/LoginForm';
 import { LogoutButton } from './components/LogoutButton';
 import { RegisterForm } from './components/RegisterForm';
 import { ThemeToggle } from './theme/ThemeToggle';
+import { BinanceConnectionsPage } from './components/binance/BinanceConnectionsPage';
+import { me } from './api/authClient';
 
-// Minimal shell wiring the auth components together. Session state itself
-// lives server-side (cookie); this local boolean only drives which screen
-// to render and is reset on logout/login events raised by the components.
+// Session state lives server-side (cookie); on mount we ask GET /api/auth/me
+// once to find out whether a valid session already exists (e.g. after a page
+// reload) instead of always defaulting to "logged out". `checking === null`
+// is the brief window before that first check resolves.
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [showRegister, setShowRegister] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    me()
+      .then(() => {
+        if (!cancelled) setIsLoggedIn(true);
+      })
+      .catch(() => {
+        if (!cancelled) setIsLoggedIn(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // ThemeToggle is device preference, not tied to auth state, so it renders
-  // in both the logged-in and logged-out shells (design/ui-visual-refresh.md
-  // "Theme toggle"). .app-header/.app-main/.card structure per "Layout /
-  // composition" (rev 2) — one card per branch, not nested.
+  // in every branch (design/ui-visual-refresh.md "Theme toggle").
+  if (isLoggedIn === null) {
+    return (
+      <>
+        <div className="app-header">
+          <ThemeToggle />
+        </div>
+        <div className="app-main">
+          <p>Đang tải...</p>
+        </div>
+      </>
+    );
+  }
+
   if (isLoggedIn) {
     return (
       <>
@@ -25,8 +53,13 @@ function App() {
           <LogoutButton onLoggedOut={() => setIsLoggedIn(false)} />
         </div>
         <div className="app-main">
-          <div className="card">
-            <AccountLinkPanel />
+          <div className="dashboard">
+            <section className="panel">
+              <AccountLinkPanel />
+            </section>
+            <section className="panel">
+              <BinanceConnectionsPage />
+            </section>
           </div>
         </div>
       </>

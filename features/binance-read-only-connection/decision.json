@@ -2,19 +2,19 @@
   "feature": "binance-read-only-connection",
   "contract_version": 1,
   "owner": "coordinator",
-  "updated_at": "2026-09-29T19:30:00Z",
-  "stage": "ARCHITECTURE",
+  "updated_at": "2026-09-30T12:30:00Z",
+  "stage": "QA",
   "requirement_status": "READY",
   "ba_status": "APPROVED_WITH_CONDITIONS",
   "architecture_status": "READY",
-  "implementation_status": "NOT_STARTED",
-  "review_status": "NOT_STARTED",
-  "qa_status": "NOT_STARTED",
-  "implementation_authorized": false,
-  "implementation_authorization_evidence": null,
+  "implementation_status": "READY",
+  "review_status": "APPROVED",
+  "qa_status": "PASS_WITH_WARNINGS",
+  "implementation_authorized": true,
+  "implementation_authorization_evidence": "User instruction 2026-09-30: sau khi user-authentication đạt implementation READY + review APPROVED + qa PASS_WITH_WARNINGS (session/CSRF/req.user.id contract verify đầy đủ qua unit+e2e test thật, chỉ còn 2 việc không liên quan — manual Telegram smoke test và npm audit acceptance — cần user tự làm trước DONE), user chọn gỡ BLOCKER-ARCH-001 ngay và yêu cầu bắt đầu IMPLEMENTATION cho binance-read-only-connection, không chờ user-authentication DONE hoàn toàn.",
   "implementation_revision": null,
-  "reviewed_revision": null,
-  "qa_revision": null,
+  "reviewed_revision": "sha256:9e701ac0b274ef9194d9838046450fae525b0101574f715e353e6f54ba559fe3",
+  "qa_revision": "sha256:9e701ac0b274ef9194d9838046450fae525b0101574f715e353e6f54ba559fe3",
   "artifacts": {
     "requirement": {
       "path": "requirements/binance-read-only-connection.md",
@@ -30,19 +30,19 @@
     },
     "implementation": {
       "path": "features/binance-read-only-connection/implementation.md",
-      "revision": null
+      "revision": "sha256:9e701ac0b274ef9194d9838046450fae525b0101574f715e353e6f54ba559fe3"
     },
     "review": {
       "path": "features/binance-read-only-connection/review.md",
-      "revision": null
+      "revision": "sha256:d544fbff6a4f17352790db45f5992fcb03f12265fa74ba4713b91266307451ea"
     },
     "qa": {
       "path": "qa/binance-read-only-connection.md",
-      "revision": null
+      "revision": "sha256:5190255868c8f6cd968adc0cd5fb3bc16ccef8ddcc630c89d49f74b15bbfe631"
     },
     "design": {
       "path": "design/binance-read-only-connection.md",
-      "revision": null
+      "revision": "sha256:295199cf09e008a4a4ea057f4e039eb81431207b0abaef059988d7c41fdfa90c"
     }
   },
   "blockers": [
@@ -53,8 +53,8 @@
       "affected_gates": [
         "IMPLEMENTATION"
       ],
-      "status": "OPEN",
-      "evidence": "architecture/binance-read-only-connection.md mục Gate check và scope + Open decisions và readiness"
+      "status": "RESOLVED",
+      "evidence": "features/user-authentication/decision.json: implementation_status READY, review_status APPROVED (features/user-authentication/review.md), qa_status PASS_WITH_WARNINGS (qa/user-authentication.md) — session cookie + CsrfGuard + AuthGuard (req.user.id từ req.session.userId, không nhận từ client) đã verify qua unit test (38/38) và e2e thật qua Postgres (8/8, gồm AC-003/AC-009/AC-010/AC-011 tương ứng). 2 việc còn lại của user-authentication trước DONE (manual Telegram smoke test, npm audit acceptance) không thuộc contract mà feature này phụ thuộc (chỉ dùng session/CSRF/ownership, không dùng Telegram). User quyết định 2026-09-30 gỡ blocker ngay, không chờ user-authentication DONE hoàn toàn."
     }
   ],
   "open_questions": [
@@ -156,7 +156,21 @@
       "evidence": "architecture/binance-read-only-connection.md: field permissionUnknown boolean fail-closed, UI banner riêng khi true."
     }
   ],
-  "warnings": [],
+  "warnings": [
+    {
+      "id": "WARN-001",
+      "description": "U-D01 (design/binance-read-only-connection.md mục Unresolved): chưa rõ GET /api/binance-connections có filter bỏ connection status=REVOKED hay trả về toàn bộ. Design giả định filter bỏ REVOKED và có spec UI fallback cho cả 2 nhánh — backend-agent cần xác nhận lựa chọn thực tế khi implement, không chặn design READY hay IMPLEMENTATION.",
+      "status": "RESOLVED",
+      "evidence": "backend/src/binance-connection/binance-connection.service.ts list() filter where: { userId, deletedAt: null } — đã chọn filter bỏ REVOKED, khớp nhánh design giả định, e2e test AC-007 xác nhận connection biến mất khỏi list sau revoke."
+    },
+    {
+      "id": "WARN-002",
+      "description": "RISK-001 mitigation (manual smoke test tài khoản margin thật CÓ HIỆU LỰC) và click-through UI thật trong browser đều chưa thực hiện được — qa-agent (coordinator) không có tài khoản Binance thật/API key thật hợp lệ và không có công cụ trình duyệt trong môi trường này, không giả lập kết quả. Chặn DONE, không chặn qa_status PASS_WITH_WARNINGS vì mọi AC đã có bằng chứng tự động + verify thật (đường lỗi, dùng garbage key) với Binance.",
+      "severity": "medium",
+      "accepted_by": null,
+      "required_before": "DONE — user tự thực hiện theo qa/binance-read-only-connection.md mục \"Việc còn lại\" #1-2, báo lại evidence để coordinator ghi bổ sung"
+    }
+  ],
   "history": [
     {
       "timestamp": "2026-09-29T00:00:00Z",
@@ -206,7 +220,42 @@
       "transition": "ARCHITECTURE (READY, không đổi stage) — thêm design_status vào contract",
       "reason": "Thêm design-agent vào workflow (song song architect-agent) theo yêu cầu user; feature này có UI (xem requirements/architecture) nên cần design_status thay vì NOT_APPLICABLE. Chưa dispatch design-agent, chỉ khởi tạo field trong contract.",
       "evidence": "agents/design/SYSTEM.md (mới); AGENTS.md mục Vai trò; workflows/feature-development.md (stage DESIGN)"
+    },
+    {
+      "timestamp": "2026-09-30T00:00:00Z",
+      "actor": "coordinator (design-agent role)",
+      "transition": "ARCHITECTURE -> ARCHITECTURE ‖ DESIGN (design_status READY)",
+      "reason": "Theo yêu cầu user: chạy design-agent song song trong lúc chờ user-authentication (dependency của BLOCKER-ARCH-001) hoàn tất implementation. Viết design/binance-read-only-connection.md dựa trên requirement READY + architecture READY hiện có, dùng lại nguyên common component (TextField/Button/InlineAlert/InlineStatus) từ design/user-authentication.md, không thêm component mới. Đủ spec cho mọi state bắt buộc AC-001..AC-008 (loading/error/empty/permissionUnknown/partial-null/timeout-vs-invalid). Ghi WARN-001 cho 1 câu hỏi làm rõ nhỏ (U-D01: REVOKED có bị filter khỏi list API không) — không chặn vì đã có spec fallback cả 2 nhánh. OQ-R03/OQ-R04 xác nhận không ảnh hưởng UI MVP. BLOCKER-ARCH-001 (user-authentication) VẪN OPEN — architecture_status và design_status đều READY nhưng implementation_authorized vẫn false, chưa mở khóa IMPLEMENTATION cho tới khi user-authentication xong và user xác nhận dispatch backend/frontend-agent.",
+      "evidence": "design/binance-read-only-connection.md sha256:295199cf09e008a4a4ea057f4e039eb81431207b0abaef059988d7c41fdfa90c"
+    },
+    {
+      "timestamp": "2026-09-30T11:00:00Z",
+      "actor": "coordinator",
+      "transition": "ARCHITECTURE -> IMPLEMENTATION (BLOCKER-ARCH-001 RESOLVED, implementation_authorized=true)",
+      "reason": "user-authentication đạt implementation_status READY + review_status APPROVED + qa_status PASS_WITH_WARNINGS, với session/CSRF/ownership (req.user.id) đã verify qua 38 unit test + 8 e2e test thật qua Postgres — đúng contract mà kiến trúc feature này giả định (BLOCKER-ARCH-001). 2 việc còn lại của user-authentication trước DONE (manual Telegram smoke test, npm audit acceptance) không liên quan tới session/CSRF/ownership contract. User được hỏi rõ có gỡ blocker ngay hay chờ user-authentication DONE hoàn toàn — chọn gỡ ngay và bắt đầu implementation. architecture_status và design_status đều đã READY từ trước; không có blocker/condition nào khác OPEN chặn IMPLEMENTATION (OQ-R03/OQ-R04 không ảnh hưởng MVP theo ghi nhận ở architecture/design).",
+      "evidence": "features/user-authentication/decision.json (implementation_status=READY, review_status=APPROVED, qa_status=PASS_WITH_WARNINGS, cập nhật 2026-09-30T10:30:00Z); User instruction 2026-09-30 (AskUserQuestion \"Gỡ ngay, bắt đầu implement binance-read-only-connection\")"
+    },
+    {
+      "timestamp": "2026-09-30T11:30:00Z",
+      "actor": "coordinator (backend-agent + frontend-agent role)",
+      "transition": "IMPLEMENTATION (NOT_STARTED -> READY)",
+      "reason": "Implement đầy đủ scope theo architecture+design READY. Backend: thêm SecretVaultModule (AES-256-GCM, master key env BINANCE_SECRET_ENCRYPTION_KEY), BinanceReadOnlyAdapterModule (allowlist cứng 2 method, HMAC-SHA256, timeout 10s), ConnectionAuditModule, BinanceConnectionModule (service+controller+DTO, advisory xact lock cho verify, ownership guard, fail-closed permission check). Phát hiện và sửa lỗ hổng crypto trong Prisma sketch của architecture (1 IV dùng chung cho 2 secret khác nhau — nonce reuse AES-GCM): thêm cột encryptionIvApiSecret, ghi rõ deviation ở docs/DATABASE.md, không cần bump revision architecture.md (crypto-correctness fix, không đổi AC/business rule). Verify thật với Binance (GET-only, garbage key, không rủi ro tài chính) phát hiện code lỗi -2008 chưa nằm trong danh sách auth-error ban đầu (chỉ dựa docs, đúng RISK-001 NEEDS_VERIFICATION) — đã sửa, verify lại đúng INVALID. Frontend: 5 component đúng design.md (BinanceConnectionsPage/AddConnectionForm/ConnectionStatusCard/AccountSnapshotPanel/RevokeConnectionButton), tái dùng common component, gắn vào App.tsx. Test: 67 unit (backend, +unit mới cho secret-vault/adapter/service) + 16 e2e Postgres thật (backend, +8 mới cho binance) + 18 unit frontend (+6 mới) đều pass; tsc/build/lint sạch cả 2 phía. Verify thật qua Postman/newman (13 request, 0 fail) nhắm vào backend dist đang chạy thật. Chưa làm được: manual smoke test tài khoản margin thật (RISK-001, cần tài khoản thật, due QA gate) và click-through UI trong browser thật (không có công cụ trình duyệt trong môi trường này) — ghi rõ là hạn chế môi trường, không phải việc bỏ sót.",
+      "evidence": "features/binance-read-only-connection/implementation.md sha256:f84aa3f63d75e5584e96eccb758902d7cc016210e3595c76a57ed9e49469ac8c; docs/DATABASE.md (BinanceConnection encryptionIvApiSecret); backend/test 67/67 + test:e2e 16/16 (verified 2026-09-30); frontend 18/18 (verified 2026-09-30); backend/postman/margin-trading-binance-connections.postman_collection.json (newman 13/13, verified 2026-09-30)"
+    },
+    {
+      "timestamp": "2026-09-30T12:00:00Z",
+      "actor": "coordinator (code-review-agent role)",
+      "transition": "IMPLEMENTATION -> CODE_REVIEW -> QA (review_status APPROVED)",
+      "reason": "Review thêm 1 vòng sau khi implementation báo READY (3 finding đã fix ngay trong lúc implement/tự-rà-soát trước đó — nonce reuse AES-GCM, sai phân loại code lỗi Binance -2008, decrypt failure có thể gây 500 chưa xử lý — được review.md tổng hợp lại làm evidence tập trung, ghi rõ mức độ độc lập thực tế không tách biệt hoàn toàn với người implement trong phiên này). Vòng soát thêm: xác nhận bằng grep + đọc code rằng chỉ đúng 1 file (`binance-read-only-adapter.service.ts`) thực sự gọi Binance, không có Number/parseFloat nào áp lên field tài chính, ConnectionView không chứa field secret, audit log không truyền apiKey/apiSecret. Phát hiện thêm 1 điểm LOW không chặn (getAccountSnapshot đọc lại 'fresh' chỉ check deletedAt không re-check status — vô hại, chỉ 1 lần gọi thừa trong cửa sổ hẹp). Sau khi thêm 2 try/catch cho decrypt (finding 3): verify lại tsc/build sạch, 69/69 unit, 16/16 e2e pass. Đối chiếu đủ AC-001..AC-008 theo bảng Validation của architecture — PASS toàn bộ. Không còn finding nào chặn QA.",
+      "evidence": "features/binance-read-only-connection/review.md sha256:d544fbff6a4f17352790db45f5992fcb03f12265fa74ba4713b91266307451ea; features/binance-read-only-connection/implementation.md sha256:9e701ac0b274ef9194d9838046450fae525b0101574f715e353e6f54ba559fe3; backend/test 69/69 + test:e2e 16/16 (verified 2026-09-30); backend/postman newman 13/13 re-run sau fix (verified 2026-09-30)"
+    },
+    {
+      "timestamp": "2026-09-30T12:30:00Z",
+      "actor": "coordinator (qa-agent role)",
+      "transition": "QA (qa_status PASS_WITH_WARNINGS, không đổi stage)",
+      "reason": "Chạy lại toàn bộ evidence (không chỉ tin review.md): tsc/build sạch, unit 69/69, e2e 16/16, frontend 18/18. Restart backend dist thật, chạy lại Postman/newman (13/13, 0 fail) để xác nhận API thật khớp Swagger/Postman sau các fix của review (không chỉ đọc tài liệu). Đối chiếu đủ AC-001..AC-008: PASS toàn bộ, có bằng chứng tự động + ít nhất 1 lần verify thật (đường lỗi, garbage key) với Binance cho AC-001/AC-002. Đóng WARN-001 (U-D01 xác nhận đã chọn filter REVOKED khỏi list, khớp design). Thêm WARN-002: RISK-001 mitigation (manual smoke test tài khoản margin thật CÓ HIỆU LỰC) và click-through UI browser thật đều chưa làm được — qa-agent không có tài khoản Binance thật hợp lệ/công cụ trình duyệt trong môi trường này, không giả lập. Đề xuất qa_status: PASS_WITH_WARNINGS — feature CHƯA đủ điều kiện DONE (cần user tự chạy 2 việc ở WARN-002) nhưng review+QA tự động đã đóng xong, không còn việc gì backend/frontend-agent có thể tự làm thêm.",
+      "evidence": "qa/binance-read-only-connection.md sha256:5190255868c8f6cd968adc0cd5fb3bc16ccef8ddcc630c89d49f74b15bbfe631; backend/test 69/69 + test:e2e 16/16 + newman 13/13 (verified 2026-09-30); frontend 18/18 (verified 2026-09-30)"
     }
   ],
-  "design_status": "NOT_STARTED"
+  "design_status": "READY"
 }

@@ -203,17 +203,35 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
             data: { lastLoginAt: new Date() },
           });
         } else {
-          const user = await tx.user.create({ data: {} });
-          userId = user.id;
-          await tx.telegramIdentity.create({
-            data: {
-              userId,
-              telegramUserId: request.telegramUserId!,
-              telegramUsername: request.telegramUsername,
-              firstName: request.firstName,
-              lastName: request.lastName,
-            },
-          });
+          try {
+            const user = await tx.user.create({ data: {} });
+            userId = user.id;
+            await tx.telegramIdentity.create({
+              data: {
+                userId,
+                telegramUserId: request.telegramUserId!,
+                telegramUsername: request.telegramUsername,
+                firstName: request.firstName,
+                lastName: request.lastName,
+              },
+            });
+          } catch (err) {
+            // Same race as the LINK branch below: a concurrent claim of this
+            // exact CONFIRMED code (double-poll/2 tabs) can win the
+            // TelegramIdentity.telegramUserId unique constraint first. Recover
+            // by reading the identity it just created instead of throwing —
+            // for LOGIN there is no ownership conflict to reject (both
+            // requests are the same Telegram user), so this request should
+            // converge onto the same userId rather than surface a 500.
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+              const winner = await tx.telegramIdentity.findUniqueOrThrow({
+                where: { telegramUserId: request.telegramUserId! },
+              });
+              userId = winner.userId;
+            } else {
+              throw err;
+            }
+          }
         }
 
         const updated = await tx.telegramLoginRequest.updateMany({

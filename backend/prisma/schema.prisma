@@ -90,3 +90,60 @@ model AuthAuditLog {
 
   @@index([userId])
 }
+
+// Prisma schema addition for feature `binance-read-only-connection`.
+// Source of truth: architecture/binance-read-only-connection.md
+// (sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210)
+// Do not add/remove fields beyond what that document specifies, EXCEPT
+// `encryptionIvApiSecret` below: the architecture doc's Prisma sketch has a
+// single `encryptionIv` shared by both encryptedApiKey and encryptedApiSecret.
+// Reusing one AES-256-GCM IV under the same key for 2 different plaintexts is
+// a nonce-reuse vulnerability (breaks GCM's confidentiality/integrity
+// guarantees), not a business-policy question — fixed during implementation
+// by giving apiSecret its own IV column. docs/DATABASE.md records this
+// deviation; architecture.md's own revision is unchanged since the fix is a
+// crypto-correctness detail, not an AC/behavior/business-rule change.
+model BinanceConnection {
+  id                    String           @id @default(uuid())
+  userId                String // from AuthGuard's req.user.id, never from client body
+  label                 String
+  encryptedApiKey       Bytes // AES-256-GCM ciphertext
+  encryptedApiSecret    Bytes
+  encryptionIv          Bytes // IV for encryptedApiKey
+  encryptionIvApiSecret Bytes // separate IV for encryptedApiSecret — see model comment
+  encryptionKeyVersion  Int // supports key rotation without decrypting everything immediately
+  status                ConnectionStatus @default(PENDING_VERIFY)
+  accountType           String? // "MARGIN_1" | "MARGIN_2" | null before first verify
+  permissionSnapshot    Json? // { enableReading, enableMargin, enableSpotAndMarginTrading, enableWithdrawals, enableFutures, enableVanillaOptions, enablePortfolioMarginTrading, checkedAt } | null if undetermined
+  permissionUnknown     Boolean          @default(false) // true when the apiRestrictions call failed — fail-closed flag (COND-003)
+  lastError             String?
+  lastVerifiedAt        DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  deletedAt             DateTime? // set in the same transaction that nulls out the secret fields on revoke
+
+  @@index([userId])
+}
+
+enum ConnectionStatus {
+  PENDING_VERIFY
+  VERIFIED
+  INVALID
+  UNSUPPORTED_ACCOUNT_MODE // accountType=MARGIN_2, or account never opened Cross Margin (COND-002: 2 distinct lastError messages, same status)
+  VERIFY_UNKNOWN // timeout/network during verify — must NOT be mapped to INVALID
+  REVOKED
+}
+
+model ConnectionAuditLog {
+  id                   String   @id @default(uuid())
+  userId               String
+  connectionId         String // kept after the connection is revoked, to preserve history — no hard FK
+  action               String // CONNECTION_ADDED | VERIFY_ATTEMPTED | VERIFY_SUCCEEDED | VERIFY_FAILED | ACCOUNT_SNAPSHOT_READ | PERMISSION_CHECK_FAILED | CONNECTION_REVOKED
+  result               String // SUCCESS | INVALID | UNSUPPORTED_ACCOUNT_MODE | UNKNOWN_TIMEOUT | ERROR
+  requestCorrelationId String
+  createdAt            DateTime @default(now())
+  detailsRedacted      Json? // MUST NEVER contain apiKey/apiSecret, plaintext or ciphertext
+
+  @@index([userId])
+  @@index([connectionId])
+}

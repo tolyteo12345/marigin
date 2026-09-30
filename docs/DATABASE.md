@@ -12,8 +12,8 @@ Quy ước:
 
 | Bảng | Trạng thái | Owner feature | Mô tả ngắn | Revision architecture liên quan |
 |---|---|---|---|---|
-| BinanceConnection | PLANNED | binance-read-only-connection | Binance API key connection (encrypted) + trạng thái verify per-user | sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210 |
-| ConnectionAuditLog | PLANNED | binance-read-only-connection | Audit log redacted cho add/verify/read/revoke connection | sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210 |
+| BinanceConnection | IMPLEMENTED | binance-read-only-connection | Binance API key connection (encrypted) + trạng thái verify per-user | sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210 |
+| ConnectionAuditLog | IMPLEMENTED | binance-read-only-connection | Audit log redacted cho add/verify/read/revoke connection | sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210 |
 | User | IMPLEMENTED | user-authentication | Identity gốc; không chứa email/password trực tiếp (xem LocalCredential/TelegramIdentity) | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
 | LocalCredential | IMPLEMENTED | user-authentication | Email + password hash (argon2id) cho 1 User, tối đa 1/user ở MVP | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
 | TelegramIdentity | IMPLEMENTED | user-authentication | Telegram identity (telegramUserId) cho 1 User, tối đa 1/user ở MVP, telegramUserId unique toàn hệ thống | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
@@ -26,7 +26,7 @@ Ghi chú: `BinanceConnection.userId` (string) là FK logic tới `User.id` (uuid
 ## Chi tiết từng bảng
 
 ### BinanceConnection
-Trạng thái: PLANNED
+Trạng thái: IMPLEMENTED
 Owner feature: binance-read-only-connection (architecture/binance-read-only-connection.md revision: sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210)
 Phụ thuộc bởi: (chưa có feature nào khác)
 
@@ -37,7 +37,8 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 | label | string | |
 | encryptedApiKey | bytes | AES-256-GCM ciphertext, không plaintext |
 | encryptedApiSecret | bytes | AES-256-GCM ciphertext, không plaintext |
-| encryptionIv | bytes | |
+| encryptionIv | bytes | IV cho encryptedApiKey |
+| encryptionIvApiSecret | bytes | IV riêng cho encryptedApiSecret — thêm trong implementation (2026-09-30), KHÁC với architecture doc gốc (chỉ có 1 `encryptionIv` dùng chung). Lý do: dùng chung 1 IV cho 2 plaintext khác nhau mã hoá cùng 1 key là lỗi nonce-reuse của AES-GCM (phá vỡ confidentiality/integrity), không phải business rule nên backend-agent tự sửa tại implementation, không cần BA/architect duyệt lại — chỉ ghi nhận deviation ở đây, không bump revision architecture.md vì không đổi AC/behavior. |
 | encryptionKeyVersion | int | hỗ trợ key rotation |
 | status | enum ConnectionStatus | PENDING_VERIFY \| VERIFIED \| INVALID \| UNSUPPORTED_ACCOUNT_MODE \| VERIFY_UNKNOWN \| REVOKED |
 | accountType | string? | "MARGIN_1" \| "MARGIN_2" \| null |
@@ -48,12 +49,12 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 | createdAt / updatedAt | datetime | |
 | deletedAt | datetime? | set cùng lúc null hoá secret khi revoke |
 
-Quan hệ: `userId` → User (feature user-authentication, architecture READY, chưa implement).
+Quan hệ: `userId` → User (feature user-authentication, IMPLEMENTED).
 Index/constraint quan trọng: index theo `userId`.
-Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/binance-read-only-connection.md. 2026-09-29 — cập nhật ghi chú `userId` thành FK cụ thể tới User.id sau khi architecture/user-authentication.md READY (không đổi kiểu dữ liệu, không đổi revision của architecture này).
+Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/binance-read-only-connection.md. 2026-09-29 — cập nhật ghi chú `userId` thành FK cụ thể tới User.id sau khi architecture/user-authentication.md READY (không đổi kiểu dữ liệu, không đổi revision của architecture này). 2026-09-30 — migration `20260930024304_binance_read_only_connection` áp dụng thật lên Postgres (`prisma migrate dev`), chuyển PLANNED → IMPLEMENTED. 2026-09-30 — migration `20260930024802_binance_connection_fix_iv` thêm cột `encryptionIvApiSecret` (sửa nonce-reuse AES-GCM, xem ghi chú cột phía trên).
 
 ### ConnectionAuditLog
-Trạng thái: PLANNED
+Trạng thái: IMPLEMENTED
 Owner feature: binance-read-only-connection (architecture/binance-read-only-connection.md revision: sha256:49b994bf10431bd82b1ce4f4d4f68a80b5ed60baeff29ed754814a3e63e01210)
 Phụ thuộc bởi: (chưa có feature nào khác)
 
@@ -70,7 +71,7 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 
 Quan hệ: `connectionId` liên kết logic tới BinanceConnection (không FK cứng để giữ lại sau khi xóa).
 Index/constraint quan trọng: index theo `userId`, index theo `connectionId`. Append-only — không update/delete.
-Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/binance-read-only-connection.md.
+Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/binance-read-only-connection.md. 2026-09-30 — migration `20260930024304_binance_read_only_connection` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
 
 ### User
 Trạng thái: IMPLEMENTED

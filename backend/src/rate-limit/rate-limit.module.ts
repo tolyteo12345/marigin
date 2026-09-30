@@ -1,11 +1,16 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 
-// Global by-IP guard for /api/auth/* (login/register/telegram/start per
-// architecture doc). POST /api/auth/telegram/webhook opts out via
-// @SkipThrottle() since its caller is always Telegram infrastructure, not
-// an end-user browser — see architecture "Rate limit" section.
+// By-IP throttling config only — NOT registered as a global APP_GUARD.
+// Architecture doc ("Rate limit" section) scopes this to exactly 3 endpoints:
+// /api/auth/login, /api/auth/register, /api/auth/telegram/start. A global
+// guard previously applied this to EVERY route in the app (including GET
+// /api/auth/me, GET .../telegram/status/:code polled every ~2s, and all
+// binance-connections routes) — confirmed as a real bug from browser console
+// logs (429 on GET /api/auth/me after a couple of page loads/React
+// StrictMode double-effects). Callers now opt in explicitly via
+// `@UseGuards(ThrottlerGuard)` on just those 3 controller methods, so a new
+// endpoint defaults to NOT throttled instead of silently inheriting this.
 // Default 10 req/min/IP is an engineering tuning value, not the account
 // lockout threshold (that is BR-010, enforced separately in LocalCredentialModule).
 @Module({
@@ -18,6 +23,6 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
       },
     ]),
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  exports: [ThrottlerModule],
 })
 export class RateLimitModule {}
