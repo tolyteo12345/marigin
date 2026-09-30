@@ -6,6 +6,16 @@
 4. Thực hiện `workflows/feature-development.md`. Coordinator là single writer của decision contract; role chỉ đề xuất cập nhật kèm evidence.
 5. Ghi version/hash của artifacts và implementation revision/content digest được review/test. Approval cũ không áp dụng khi inputs thay đổi.
 
+## Roadmap (thứ tự triển khai)
+
+Bảng dưới xếp feature theo thứ tự nên làm dựa trên phụ thuộc thực tế (đọc từ Dependencies trong requirements/, không suy đoán). Đây là gợi ý điều phối, không phải gate — coordinator vẫn quyết định qua decision.json. Khi thêm feature mới hoặc phụ thuộc đổi, cập nhật bảng này thay vì đổi tên slug/thư mục.
+
+| # | Feature | Stage hiện tại | Phụ thuộc vào | Lý do |
+|---|---|---|---|---|
+| 1 | `ui-visual-refresh` | DONE | — | Không đụng backend/execution, không có dependency (requirements/ui-visual-refresh.md). |
+| 2 | `user-authentication` | IMPLEMENTATION | — | Prerequisite bắt buộc cho mọi module per-user (`req.user.id`, session, CSRF) mà `binance-read-only-connection` và các module downstream trong docs/DOMAIN.md cần (requirements/user-authentication.md). |
+| 3 | `binance-read-only-connection` | ARCHITECTURE (BLOCKED tại IMPLEMENTATION) | `user-authentication` | Architecture đã READY nhưng giả định sẵn `req.user.id`/session/CSRF do `user-authentication` định nghĩa; implementation không thể bắt đầu trước feature #2 (requirements/user-authentication.md, requirements/binance-read-only-connection.md). |
+
 ## Quy ước contract
 - stage: IDEA | REQUIREMENT | BA_FEASIBILITY | ARCHITECTURE | IMPLEMENTATION | CODE_REVIEW | QA | DONE.
 - requirement_status: NOT_STARTED | IN_PROGRESS | READY.
