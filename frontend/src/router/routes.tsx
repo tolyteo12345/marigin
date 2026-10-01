@@ -6,6 +6,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { LoadingShell } from './LoadingShell';
 import { requireSession } from './requireSession';
+import { panelClassName } from '../styles';
 
 // Exported separately from `router` so tests can build a createMemoryRouter
 // from the exact same route tree instead of re-declaring it (COND-N02).
@@ -22,7 +23,7 @@ export const routeConfig: RouteObject[] = [
       {
         path: 'connections/binance',
         element: (
-          <section className="panel">
+          <section className={panelClassName}>
             <BinanceConnectionsPage />
           </section>
         ),

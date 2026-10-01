@@ -2,7 +2,7 @@
   "feature": "ui-visual-refresh",
   "contract_version": 1,
   "owner": "coordinator",
-  "updated_at": "2026-09-30T13:00:00Z",
+  "updated_at": "2026-10-01T11:00:00Z",
   "stage": "DONE",
   "requirement_status": "READY",
   "ba_status": "APPROVED",
@@ -13,9 +13,9 @@
   "qa_status": "PASS_WITH_WARNINGS",
   "implementation_authorized": true,
   "implementation_authorization_evidence": "User xác nhận 'ok' bắt đầu implementation ở turn 2026-09-29 sau khi architecture_status và design_status đều READY.",
-  "implementation_revision": 3,
-  "reviewed_revision": 3,
-  "qa_revision": 3,
+  "implementation_revision": 4,
+  "reviewed_revision": 4,
+  "qa_revision": 4,
   "artifacts": {
     "requirement": {
       "path": "requirements/ui-visual-refresh.md",
@@ -31,19 +31,19 @@
     },
     "design": {
       "path": "design/ui-visual-refresh.md",
-      "revision": 2
+      "revision": 3
     },
     "implementation": {
       "path": "features/ui-visual-refresh/implementation.md",
-      "revision": 3
+      "revision": 4
     },
     "review": {
       "path": "features/ui-visual-refresh/review.md",
-      "revision": 2
+      "revision": 3
     },
     "qa": {
       "path": "qa/ui-visual-refresh.md",
-      "revision": 2
+      "revision": 3
     }
   },
   "blockers": [],
@@ -97,6 +97,16 @@
       "status": "RESOLVED",
       "resolution": "User xem ảnh chụp rev 2 (Login dark/light, Register, Telegram tab) và trả lời 'DONE' — chấp nhận rõ ràng. AccountLinkPanel KHÔNG được xác nhận trực quan trong lần đóng gate này (chưa có backend thật để test) — user đóng feature với gap này còn tồn tại, ghi lại trung thực chứ không giả định đã kiểm tra.",
       "resolved_at": "2026-09-29T02:15:00Z"
+    },
+    {
+      "id": "COND-003",
+      "owner": "user",
+      "affected_gate": "DONE",
+      "due_gate": "DONE",
+      "condition": "User tự chạy `npm run dev`, so sánh bằng mắt với ảnh tham chiếu near.com (`.demo/home/*.png`, `.demo/login/*.png`) sau khi rewrite toàn bộ CSS sang Tailwind (rev 3, 2026-10-01), xác nhận đạt hoặc yêu cầu chỉnh thêm. Không có browser tool thật trong môi trường này nên không tự xác nhận được — ghi trung thực, không giả định đã đạt.",
+      "status": "OPEN",
+      "resolution": null,
+      "resolved_at": null
     }
   ],
   "warnings": [
@@ -178,6 +188,12 @@
       "actor": "coordinator",
       "action": "Bugfix sau DONE, theo báo cáo lỗi thật của user: layout màn hình đã đăng nhập bị chen chúc (\"UI quá tệ\") — đúng gap COND-002 đã cảnh báo trước đó (AccountLinkPanel chưa từng chụp ảnh/xác nhận trực quan thật, và từ đó tới nay có thêm BinanceConnectionsPage bên cạnh). `.app-main`/`.card` (thiết kế cho form đăng nhập hẹp 420px) bị tái dùng sai cho nhánh dashboard. Thêm `.dashboard`/`.panel`/`.connection-card` trong index.css, App.tsx đổi `<div className=\"card\">` → `<section className=\"panel\">` cho nhánh đã đăng nhập, không đổi màn đăng nhập/đăng ký. Verify: tsc/build/lint sạch, test 6 files/20 pass (không giảm). Không chạy lại toàn bộ CODE_REVIEW/QA hình thức cho thay đổi CSS nhỏ này — bump implementation/reviewed/qa revision lên 3 kèm lý do ở đây, chưa chụp ảnh trực quan lại được (không có công cụ trình duyệt trong môi trường này), cần user xác nhận layout mới.",
       "timestamp": "2026-09-30T13:00:00Z"
+    },
+    {
+      "revision": 13,
+      "actor": "coordinator",
+      "action": "User cung cấp 4 ảnh tham chiếu UI near.com (.demo/*.png, gitignored) và yêu cầu follow phong cách đó + dùng Tailwind CSS. Hỏi lại user 3 quyết định scope trước khi làm (AskUserQuestion): (1) giữ nguyên nội dung đăng nhập (không thêm passkey/wallet), (2) giữ nguyên cấu trúc sidebar (không thêm submenu Account/Settings/Referrals/Gifts chưa tồn tại), (3) rewrite toàn bộ CSS sang Tailwind ngay (user chọn, không làm dần). design/ui-visual-refresh.md rev 3: giữ nguyên cơ chế theme (CSS var + data-theme + ThemeProvider, không đổi architecture), chỉnh giá trị token màu sát near.com, đổi nav active-state sang pill trung tính, thêm top accent bar trang trí, thêm icon SVG inline cho nav item (không thêm dependency). Cài tailwindcss@4.3.3 + @tailwindcss/vite@4.3.3 (verify qua npm view trực tiếp, peer vite tương thích Vite 8.3 hiện có). Rewrite toàn bộ component frontend sang Tailwind utility (giữ nguyên API/props, chỉ TelegramLoginButton thêm 1 prop optional fullWidth). Verify: tsc sạch, 25/25 test pass (routes.test.tsx đổi 2 assertion từ className sang data-open attribute, không đổi hành vi), build thành công, lint không warning mới, đọc CSS output xác nhận mọi arbitrary-value class compile đúng. Review độc lập (cùng phiên, ghi rõ hạn chế) không phát hiện finding chặn. QA retest toàn bộ, giữ nguyên trạng thái PASS_WITH_WARNINGS của các AC cũ (không bị ảnh hưởng nội dung), thêm COND-003 (user tự xem bằng mắt so với near.com trước khi DONE lại — không có browser tool trong môi trường này). implementation/reviewed/qa revision = 4, design revision = 3. stage giữ DONE (theo đúng tiền lệ revision 12) nhưng COND-003 OPEN chặn việc coi feature thực sự hoàn tất tới khi user xác nhận.",
+      "timestamp": "2026-10-01T11:00:00Z"
     }
   ]
 }

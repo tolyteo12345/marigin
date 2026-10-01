@@ -35,7 +35,7 @@ export function AddConnectionForm({ onCreated }: AddConnectionFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="mb-4">
       <TextField label="Tên gợi nhớ" value={label} onChange={(e) => setLabel(e.target.value)} required disabled={submitting} />
       <TextField label="API Key" type="text" value={apiKey} onChange={(e) => setApiKey(e.target.value)} required disabled={submitting} />
       <TextField
@@ -46,13 +46,13 @@ export function AddConnectionForm({ onCreated }: AddConnectionFormProps) {
         required
         disabled={submitting}
       />
-      <p>
+      <p className="text-xs text-[var(--color-text-secondary)]">
         Chỉ nhập API key có quyền đọc (Enable Reading). Không bật Enable Spot &amp; Margin Trading hoặc Enable
         Withdrawals nếu không cần.
       </p>
       {submitting && <InlineStatus>Đang xác minh kết nối...</InlineStatus>}
       {error && <InlineAlert>{error}</InlineAlert>}
-      <Button type="submit" disabled={submitting}>
+      <Button type="submit" disabled={submitting} className="mt-2">
         Thêm kết nối
       </Button>
     </form>

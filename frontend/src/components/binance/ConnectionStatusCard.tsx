@@ -41,11 +41,15 @@ export function ConnectionStatusCard({ connection, onUpdated, onRevoked }: Conne
   }
 
   return (
-    <div className="connection-card">
+    <div className="mt-4 flex w-full flex-col items-start gap-2 rounded-lg border border-[var(--color-border)] p-4 text-left">
       <p>
-        <strong>{connection.label}</strong>
+        <strong className="text-[var(--color-text-primary)]">{connection.label}</strong>
       </p>
-      {connection.lastVerifiedAt && <p>Xác minh gần nhất: {formatLastVerifiedAt(connection.lastVerifiedAt)}</p>}
+      {connection.lastVerifiedAt && (
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          Xác minh gần nhất: {formatLastVerifiedAt(connection.lastVerifiedAt)}
+        </p>
+      )}
 
       {connection.status === 'PENDING_VERIFY' && <InlineStatus>Đang xác minh...</InlineStatus>}
 

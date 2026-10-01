@@ -51,9 +51,9 @@ export function RegisterForm({ onRegistered }: RegisterFormProps) {
         minLength={MIN_PASSWORD_LENGTH}
         required
       />
-      <p>Password tối thiểu {MIN_PASSWORD_LENGTH} ký tự.</p>
+      <p className="text-xs text-[var(--color-text-secondary)]">Password tối thiểu {MIN_PASSWORD_LENGTH} ký tự.</p>
       {error && <InlineAlert>{error}</InlineAlert>}
-      <Button type="submit" disabled={submitting}>
+      <Button type="submit" disabled={submitting} className="mt-2 w-full">
         Đăng ký
       </Button>
     </form>

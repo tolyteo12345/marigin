@@ -11,9 +11,15 @@ export function TextField({ label, id, ...inputProps }: TextFieldProps) {
   const inputId = id ?? generatedId;
 
   return (
-    <div className="field">
-      <label htmlFor={inputId}>{label}</label>
-      <input id={inputId} {...inputProps} />
+    <div className="my-3 flex w-full flex-col items-start gap-1 text-left">
+      <label htmlFor={inputId} className="text-xs text-[var(--color-text-secondary)]">
+        {label}
+      </label>
+      <input
+        id={inputId}
+        {...inputProps}
+        className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text-primary)] focus-visible:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-accent)]"
+      />
     </div>
   );
 }

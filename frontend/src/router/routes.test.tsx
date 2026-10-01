@@ -120,15 +120,15 @@ describe('app-navigation-shell routing', () => {
     const nav = screen.getByRole('navigation', { name: 'Điều hướng chính' });
 
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
-    expect(nav.className).not.toContain('nav-sidebar-open');
+    expect(nav).toHaveAttribute('data-open', 'false');
 
     await userEvent.click(toggleBtn);
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'true');
-    expect(nav.className).toContain('nav-sidebar-open');
+    expect(nav).toHaveAttribute('data-open', 'true');
 
     await userEvent.click(screen.getByRole('link', { name: 'Kết nối Binance' }));
     await screen.findByText('Bạn chưa có kết nối Binance nào.');
     expect(toggleBtn).toHaveAttribute('aria-expanded', 'false');
-    expect(nav.className).not.toContain('nav-sidebar-open');
+    expect(nav).toHaveAttribute('data-open', 'false');
   });
 });

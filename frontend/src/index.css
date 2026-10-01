@@ -1,12 +1,17 @@
-/* Design tokens — design/ui-visual-refresh.md. Dark is the default (:root);
-   [data-theme='light'] overrides. Switching is driven by ThemeProvider
-   setting data-theme on <html> (architecture/ui-visual-refresh.md). */
+@import "tailwindcss";
+
+/* Design tokens — design/ui-visual-refresh.md (rev 3: near.com-inspired
+   palette, Tailwind migration). Dark is the default (:root); [data-theme='light']
+   overrides. Switching is driven by ThemeProvider setting data-theme on <html>.
+   Components consume these via Tailwind arbitrary values (e.g.
+   bg-[var(--color-surface)]) instead of hand-written utility classes, so the
+   same tokens keep working under Tailwind without a second color system. */
 :root {
-  --color-bg: #0b0e11;
-  --color-surface: #151a1f;
-  --color-border: #232a31;
-  --color-text-primary: #e8ecef;
-  --color-text-secondary: #848e9c;
+  --color-bg: #09090b;
+  --color-surface: #18181b;
+  --color-border: #27272a;
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
   --color-accent: #00d4aa;
   --color-accent-hover: #00b894;
   --color-danger: #ff5c5c;
@@ -14,22 +19,11 @@
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  --font-size-base: 14px;
-  --font-size-sm: 12px;
-  --font-size-lg: 18px;
-
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --radius: 6px;
-  --radius-lg: 12px;
-  --sidebar-width: 240px;
 
   --shadow:
     rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 
-  font: var(--font-size-base) / 145% var(--font-sans);
+  font: 14px / 145% var(--font-sans);
   letter-spacing: 0.18px;
   color-scheme: dark light;
   color: var(--color-text-secondary);
@@ -55,383 +49,37 @@
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 }
 
+body {
+  margin: 0;
+}
+
 #root {
+  position: relative;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
+/* near.com-style decorative top accent strip — purely cosmetic. */
+#root::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover));
+  z-index: 50;
 }
 
-h1,
 h2 {
   font-family: var(--font-sans);
   font-weight: 500;
   color: var(--color-text-primary);
+  margin: 0 0 8px;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: var(--font-size-lg);
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 var(--space-sm);
-}
 p {
   margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--font-mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--color-text-primary);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--color-surface);
-}
-
-/* App shell — design/ui-visual-refresh.md "Layout / composition" (rev 2) */
-
-.app-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-sm);
-  padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.app-header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-left: auto;
-}
-
-.app-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-lg);
-  box-sizing: border-box;
-}
-
-/* Logged-in content area: top-aligned list of wide panels, not centered like
-   the login .card (design/app-navigation-shell.md mục 1). */
-.app-main-shell {
-  align-items: flex-start;
-  justify-content: center;
-}
-
-/* Caps each routed page's own panel at the old .dashboard width so a single
-   page doesn't stretch edge-to-edge next to the sidebar. */
-.app-main-shell > * {
-  width: 100%;
-  max-width: 960px;
-}
-
-/* App shell — design/app-navigation-shell.md. Sidebar + header + routed
-   content, replacing the old #root-is-the-only-container layout. */
-.app-shell {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
-
-.app-shell-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-/* Breakpoint hardcoded at 768px: CSS media queries cannot read a custom
-   property, so this value (design/app-navigation-shell.md --sidebar-breakpoint)
-   is duplicated here and in NavSidebar's nothing-else-needed CSS-only
-   collapse — kept as a single literal instead of a second source of truth. */
-.nav-toggle-btn {
-  display: none;
-  font: inherit;
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  cursor: pointer;
-}
-
-.nav-sidebar {
-  width: var(--sidebar-width);
-  flex-shrink: 0;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  padding: var(--space-md) var(--space-sm);
-  box-sizing: border-box;
-  overflow-y: auto;
-}
-
-.nav-sidebar-backdrop {
-  display: none;
-}
-
-.nav-group + .nav-group {
-  margin-top: var(--space-lg);
-}
-
-.nav-group-heading {
-  margin: 0 0 var(--space-xs);
-  padding: 0 var(--space-sm);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-}
-
-.nav-group-items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.nav-item {
-  display: block;
-  padding: var(--space-sm) var(--space-sm);
-  border-radius: var(--radius);
-  border-left: 3px solid transparent;
-  color: var(--color-text-primary);
-  text-decoration: none;
-}
-
-.nav-item:hover {
-  background: color-mix(in srgb, var(--color-border) 50%, transparent);
-}
-
-.nav-item-active {
-  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-surface));
-  border-left-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-@media (max-width: 768px) {
-  .nav-toggle-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .nav-sidebar {
-    position: fixed;
-    inset: 0 25% 0 0;
-    width: auto;
-    z-index: 20;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease;
-    box-shadow: var(--shadow);
-  }
-
-  .nav-sidebar-open {
-    transform: translateX(0);
-  }
-
-  .nav-sidebar-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 10;
-  }
-}
-
-.card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  padding: var(--space-lg);
-  box-sizing: border-box;
-  text-align: left;
-}
-
-.panel {
-  width: 100%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  padding: var(--space-lg);
-  box-sizing: border-box;
-  text-align: left;
-}
-
-.panel .btn {
-  width: auto;
-}
-
-/* One per BinanceConnection inside the "Kết nối Binance" panel — a plain
-   bordered row, not a nested shadowed .card (avoids double-shadow clutter
-   inside an already-boxed .panel). */
-.connection-card {
-  width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: var(--space-md);
-  box-sizing: border-box;
-  text-align: left;
-  margin-top: var(--space-md);
-}
-
-.connection-card .btn {
-  width: auto;
-}
-
-.connection-card table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: var(--space-sm) 0;
-}
-
-.connection-card th,
-.connection-card td {
-  text-align: left;
-  padding: var(--space-xs) var(--space-sm);
-  border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-size-sm);
-}
-
-/* Full-width CTAs inside a card, matching full-width inputs (Hyperliquid-style). */
-.card .btn {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: var(--space-sm);
-}
-
-/* Shared components (frontend/src/components/common/) */
-
-.field {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-xs);
-  margin: 12px 0;
-  text-align: left;
-}
-
-.field label {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.field input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--space-sm) 12px;
-  font: inherit;
-  color: var(--color-text-primary);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-}
-
-.field input:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-  border-color: var(--color-accent);
-}
-
-.btn {
-  font: inherit;
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius);
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.btn-primary {
-  color: var(--color-bg);
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.btn-primary:not(:disabled):hover {
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
-}
-
-.btn-secondary {
-  color: var(--color-text-primary);
-  background: transparent;
-  border-color: var(--color-border);
-}
-
-.inline-message {
-  padding: var(--space-sm) 12px;
-  border-radius: var(--radius);
-  font-size: var(--font-size-base);
-  border-left: 3px solid transparent;
-  text-align: left;
-}
-
-.inline-message-alert {
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
-  border-left-color: var(--color-danger);
-}
-
-.inline-message-status {
-  color: var(--color-success);
-  background: color-mix(in srgb, var(--color-success) 12%, var(--color-surface));
-  border-left-color: var(--color-success);
-}
-
-.tabs {
-  display: flex;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-}
-
-.tab {
-  flex: 1;
-  padding: var(--space-sm) 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.tab[aria-selected='true'] {
-  color: var(--color-bg);
-  background: var(--color-accent);
-  border-color: var(--color-accent);
 }

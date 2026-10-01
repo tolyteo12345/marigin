@@ -44,3 +44,17 @@ Implementation **READY**. Feature này thuần frontend (không có thay đổi 
 
 ## Hạn chế môi trường (không phải việc bỏ sót)
 Không có browser tool thật trong môi trường này để click-through UI thật (mở app, bấm toggle sidebar trên viewport mobile thật, kiểm tra bằng mắt contrast/theme) — đã verify tối đa có thể bằng Testing Library (DOM thật qua jsdom, bao gồm cả `aria-current`/role) + `vite preview`/`curl` cho build thật. AC-009 (theme áp đúng token lên sidebar) chưa có evidence đo contrast thật — cần người có browser thật verify trước QA DONE, giống cách `ui-visual-refresh`/`binance-read-only-connection` đã từng ghi nhận hạn chế tương tự.
+
+## Cập nhật 2026-10-01: migrate sang Tailwind + style near.com (design rev r2)
+Theo yêu cầu user follow near.com UI (xem `design/ui-visual-refresh.md` rev 3 cho bối cảnh đầy đủ Tailwind migration áp dụng toàn app). Phần ảnh hưởng feature này (`design/app-navigation-shell.md` rev r2 — chỉ style, không đổi route/API/cấu trúc nhóm):
+- `NavSidebar.tsx`: active state đổi từ "viền trái + tint accent" (class `.nav-item-active` cũ) sang pill nền `--color-border` trung tính (khớp near.com — ảnh tham chiếu dùng highlight xám cho mục đang chọn, accent dành riêng cho tín hiệu khác). Thêm icon SVG inline (`navigation/icons.tsx`, mới) cho mỗi `NavItem`. Breakpoint giữ nguyên 768px nhưng cơ chế đổi từ `@media (max-width:768px)` thủ công sang Tailwind `md:` (mặc định đúng 768px, không lệch hành vi).
+- Thay class `nav-sidebar-open` cũ bằng attribute `data-open` trên `<nav>` — test hook ổn định hơn, không phụ thuộc tên class CSS. Cập nhật `routes.test.tsx`: 2 assertion đổi từ `nav.className.toContain(...)` sang `toHaveAttribute('data-open', ...)`, không đổi ý nghĩa test.
+- `AppShell.tsx`: thay toàn bộ class CSS cũ (`.app-shell`, `.app-header`, `.nav-toggle-btn`...) bằng Tailwind utility, hành vi/cấu trúc DOM giữ nguyên.
+- `AccountPage.tsx`/route Binance trong `routes.tsx`: dùng `panelClassName` dùng chung (`frontend/src/styles.ts`, mới) thay cho class `.panel` cũ.
+
+Verify: `npx tsc -b` sạch, `npx vitest run` 25/25 pass (bao gồm toàn bộ 7 test của `routes.test.tsx`, không giảm), `npm run build` thành công, `npm run lint` không warning mới. Đọc CSS output xác nhận `md:translate-x-0`, `data-open` (qua React, không phải CSS, không cần kiểm trong CSS output) và các class khác compile đúng.
+
+**Giới hạn môi trường (không đổi)**: không có browser tool thật — WARN-N01 hiện có (AC-006 CSS thật, AC-009 contrast thật) mở rộng thêm phạm vi "so khớp near.com" cho sidebar (icon/active-state/spacing), cùng lý do thiếu công cụ, không phải lỗi mới.
+
+## Đề xuất trạng thái (cập nhật)
+implementation_status: READY (revision mới — xem decision.json).

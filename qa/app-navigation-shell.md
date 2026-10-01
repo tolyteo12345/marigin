@@ -61,3 +61,8 @@ Không phát hiện defect mới trong QA. 2 điểm đã ghi nhận từ trư�
 Toàn bộ test tự động pass (25 frontend + 69 backend không bị ảnh hưởng), cộng 1 lần verify thật end-to-end với backend dev thật (không chỉ mock) xác nhận đúng contract session mà route guard phụ thuộc. Không phát hiện correctness/security issue nào. 2 case NOT_RUN (AC-006 CSS thật, AC-009 contrast thật) đều do thiếu công cụ trình duyệt trong môi trường này, không phải lỗi code hay thiếu sót có thể tự đóng — nhất quán với hạn chế đã từng gặp ở `ui-visual-refresh`/`binance-read-only-connection`.
 
 **Đề xuất qa_status: PASS_WITH_WARNINGS** — không chặn PASS vì mọi AC khác đã có bằng chứng tự động đầy đủ và phần JS của AC-006 cũng đã PASS; nhưng chặn DONE cho tới khi user/QA có browser thật xác nhận AC-006 (overlay mobile hiển thị đúng theo viewport) và AC-009 (contrast theme đạt chuẩn AA).
+
+## Cập nhật 2026-10-01 (Tailwind migration + near.com style)
+Chạy lại evidence: `tsc -b` sạch, 25/25 test pass, build thành công, lint không warning mới. Đối chiếu AC-001..010: không AC nào đổi hành vi (chỉ style/icon), giữ nguyên kết luận PASS của lần QA trước cho từng AC. WARN-N01 (AC-006 CSS thật, AC-009 contrast thật) mở rộng phạm vi sang xác nhận so khớp near.com (icon/active-state/spacing sidebar) — cùng nguyên nhân thiếu browser tool, không phải gap mới phát sinh từ thay đổi lần này.
+
+**qa_status: PASS_WITH_WARNINGS** (không đổi). WARN-N01 vẫn là điều kiện duy nhất chặn DONE.

@@ -1,6 +1,14 @@
 # Design: app-navigation-shell
 
-Revision: r1-2026-09-30 | Owner: coordinator (design-agent role) | Decision: features/app-navigation-shell/decision.json
+Revision: r2-2026-10-01 | Owner: coordinator (design-agent role) | Decision: features/app-navigation-shell/decision.json
+
+**Ghi chú rev 2**: theo yêu cầu user follow phong cách near.com (xem `design/ui-visual-refresh.md` rev 3 cho bối cảnh đầy đủ và Tailwind migration). Cấu trúc sidebar **giữ nguyên hoàn toàn** (2 nhóm theo domain, deep-linkable routing, responsive overlay) — chỉ đổi:
+- **Active state**: pill nền `--color-border` trung tính (không còn viền trái + tint accent) — khớp near.com dùng highlight xám cho mục đang chọn, không dùng màu accent.
+- **Icon**: mỗi `NavItem` thêm icon line-art 20x20 (inline SVG, `frontend/src/navigation/icons.tsx`, không thêm icon-library dependency).
+- **Breakpoint**: giá trị giữ nguyên 768px nhưng cơ chế đổi từ `@media (max-width:768px)` thủ công sang Tailwind breakpoint `md:` (Tailwind mặc định `md=768px`, trùng khớp — không phải thay đổi UX, chỉ đổi cách implement).
+- **Test hook**: thuộc tính `data-open` trên `<nav>` thay cho class `nav-sidebar-open` cũ (ổn định hơn cho test, không phụ thuộc tên class CSS).
+
+Không có thay đổi nào ảnh hưởng AC/route/API — chỉ visual, không cần BA/architecture xem lại.
 
 ## Input
 - requirements/app-navigation-shell.md r1-2026-09-30 (sha256:95f8aea2ee636be86a4d55ea7e136168eebe2fc6772b6bb3f025653925a17a25) — US-001..US-007, AC-001..AC-010

@@ -74,5 +74,18 @@ Sửa: thêm class mới trong `index.css` — `.dashboard` (container rộng `m
 
 Verify: `npx tsc -b`, `npm run build`, `npm test -- --run` (20/20 pass, không đổi so với trước fix layout vì CSS thuần không có unit test riêng cho style — chỉ có test cấu trúc/hành vi component), `npm run lint` sạch (không warning mới). Chưa chụp ảnh trực quan lại được (không có công cụ trình duyệt trong môi trường này) — cần user xác nhận layout mới đã ổn hay cần chỉnh thêm.
 
+## Cập nhật 2026-10-01: migrate sang Tailwind CSS + phong cách near.com (rev 3)
+Theo yêu cầu user (ảnh tham chiếu `.demo/*.png`, xem `design/ui-visual-refresh.md` rev 3 cho quyết định scope đã hỏi lại user trước khi làm). Thay đổi:
+- Cài `tailwindcss@4.3.3` + `@tailwindcss/vite@4.3.3` (xác nhận qua `npm view` trực tiếp từ registry, peer `vite: ^5.2.0||^6||^7||^8` — khớp Vite 8.3 hiện có). Thêm `tailwindcss()` plugin vào `vite.config.ts`.
+- `index.css`: thay toàn bộ class thủ công (`.btn`, `.card`, `.panel`, `.field`, `.inline-message`, `.tabs`, `.nav-*`, `.app-*`, `.connection-card`...) bằng `@import "tailwindcss";` + giữ nguyên `:root`/`:root[data-theme='light']` token (giá trị màu điều chỉnh sát near.com hơn — xem design rev 3), bỏ các token `--font-size-*`/`--space-*`/`--radius*` (dùng thang Tailwind chuẩn thay thế), giữ `--shadow`. Thêm `#root::before` cho dải accent trang trí trên cùng.
+- Toàn bộ component (`Button`, `TextField`, `InlineMessage`, `LoginForm`, `RegisterForm`, `TelegramLoginButton`, `LogoutButton`, `AccountLinkPanel`, 5 component Binance, `AppShell`, `NavSidebar`, `LoginPage`, `NotFoundPage`, `LoadingShell`) viết lại class trực tiếp bằng Tailwind utility, dùng arbitrary value tham chiếu đúng CSS var hiện có (`bg-[var(--color-surface)]`...) để giữ nguyên cơ chế theme-switching, không cần đổi `ThemeProvider`/`architecture/ui-visual-refresh.md`.
+- Thêm `frontend/src/navigation/icons.tsx` (2 icon SVG inline cho nav item, không thêm icon-library dependency) và `frontend/src/styles.ts` (`panelClassName` dùng chung giữa `AccountPage`/route Binance, tránh lặp chuỗi Tailwind dài).
+- `TelegramLoginButton` thêm prop `fullWidth` (mặc định `false`) để giữ đúng hành vi cũ: full-width khi dùng trong `.card` (LoginPage), auto-width khi dùng trong panel (AccountLinkPanel) — trước đây đạt được qua CSS descendant selector (`.card .btn`/`.panel .btn`), nay Tailwind utility-first không có cách tương đương nên phải expose prop tường minh.
+- `NavSidebar`: đổi tên biến active state (pill nền trung tính thay vì viền trái + tint accent, theo near.com), thêm `data-open` attribute thay cho class `nav-sidebar-open` cũ (test hook ổn định hơn, không phụ thuộc tên class CSS cụ thể).
+
+Verify: `npx tsc -b` sạch, `npx vitest run` 25/25 pass (6 file test không đổi logic, chỉ 2 assertion trong `routes.test.tsx` đổi từ kiểm tra `className` sang `data-open` attribute), `npm run build` thành công (CSS output 18KB, tăng từ 7KB do Tailwind utility — hợp lý), `npm run lint` không có warning mới (2 warning pre-existing không liên quan vẫn còn, không phải do thay đổi này). Đọc trực tiếp CSS đã build xác nhận mọi arbitrary-value class (color-mix, border-left-color, responsive `md:translate-x-0`, `aria-selected:` variant, `not-disabled:hover:`...) compile đúng, không bị Tailwind âm thầm bỏ qua.
+
+**Giới hạn môi trường (không đổi so với trước)**: không có browser tool thật — không thể chụp ảnh so khớp trực tiếp với `.demo/*.png`. Cần user tự chạy `npm run dev`, so sánh bằng mắt với ảnh near.com đã cung cấp, trước khi coi đạt yêu cầu (COND-003 mới, due_gate DONE — xem decision.json; feature này đã DONE trước đó nhưng thay đổi diện rộng này cần xác nhận lại, không chỉ dựa vào bugfix nhỏ như rev trước).
+
 ## Đề xuất trạng thái
-implementation_status: READY.
+implementation_status: READY (rev 3, revision counter = 4 theo decision.json).

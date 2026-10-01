@@ -7,11 +7,11 @@ import { ThemeToggle } from '../theme/ThemeToggle';
 export function LoadingShell() {
   return (
     <>
-      <div className="app-header">
+      <div className="flex items-center justify-end gap-2 border-b border-[var(--color-border)] px-6 py-4">
         <ThemeToggle />
       </div>
-      <div className="app-main">
-        <p>Đang tải...</p>
+      <div className="flex flex-1 items-center justify-center p-6">
+        <p className="text-[var(--color-text-secondary)]">Đang tải...</p>
       </div>
     </>
   );

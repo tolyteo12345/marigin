@@ -41,3 +41,8 @@ Input:
 1 finding (thiếu test AC-006 JS wiring) đã fix và verify lại ngay trong vòng review: 25/25 test frontend pass, `tsc -b` sạch, `oxlint` không warning mới, `vite build` thành công, backend không bị đụng tới. Không phát hiện lỗi chặn nào khác (security/CSRF/ownership không áp dụng cho feature này vì không có action tài chính/API mới). 2 điểm không thể kiểm bằng automated test (AC-006 CSS thật, AC-009 contrast thật) đã ghi nhận ở WARN-N01, cần user/QA verify thủ công trước DONE — không phải lỗi chặn implementation.
 
 **review_status: APPROVED**, gắn implementation revision sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151.
+
+## Cập nhật 2026-10-01 (Tailwind migration + near.com style)
+Review độc lập trong cùng phiên (ghi rõ hạn chế, theo đúng thông lệ). Đọc lại diff: xác nhận route tree/API/cấu trúc nhóm nav không đổi — chỉ `className`/2 file mới thuần trình bày (`navigation/icons.tsx`, `styles.ts` dùng chung với ui-visual-refresh). `data-open` attribute thay cho class cũ là cải thiện (test hook ổn định hơn), không phải regression. Chạy lại `tsc -b`/`vitest run` (25/25, toàn bộ 7 test routing giữ nguyên)/`lint`/`build` — khớp implementation.md. Không phát hiện finding chặn mới.
+
+**review_status: APPROVED**, gắn implementation revision sha256:4df5a0e7303769909ba1d1e780eb0049cc95d8f18d4285fed0b2272d31983aa1.

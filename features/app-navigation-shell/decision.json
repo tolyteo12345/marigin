@@ -13,9 +13,9 @@
   "qa_status": "PASS_WITH_WARNINGS",
   "implementation_authorized": true,
   "implementation_authorization_evidence": "User instruction 2026-10-01: xác nhận \"ok\" sau khi coordinator hỏi có tiến hành IMPLEMENTATION hay không, với architecture_status và design_status đều đã READY.",
-  "implementation_revision": "sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151",
-  "reviewed_revision": "sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151",
-  "qa_revision": "sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151",
+  "implementation_revision": "sha256:4df5a0e7303769909ba1d1e780eb0049cc95d8f18d4285fed0b2272d31983aa1",
+  "reviewed_revision": "sha256:4df5a0e7303769909ba1d1e780eb0049cc95d8f18d4285fed0b2272d31983aa1",
+  "qa_revision": "sha256:4df5a0e7303769909ba1d1e780eb0049cc95d8f18d4285fed0b2272d31983aa1",
   "artifacts": {
     "requirement": {
       "path": "requirements/app-navigation-shell.md",
@@ -31,19 +31,19 @@
     },
     "design": {
       "path": "design/app-navigation-shell.md",
-      "revision": "sha256:d2a66dea812c7363fde3694a282f154f75fa485b24a0eee07d34cba43cf5b14c"
+      "revision": "sha256:98904071a7dd3b1376c9ce258c78412d748c37101f9ff6bcc06bcf0c2892c544"
     },
     "implementation": {
       "path": "features/app-navigation-shell/implementation.md",
-      "revision": "sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151"
+      "revision": "sha256:4df5a0e7303769909ba1d1e780eb0049cc95d8f18d4285fed0b2272d31983aa1"
     },
     "review": {
       "path": "features/app-navigation-shell/review.md",
-      "revision": "sha256:fe2f2cca731dfe96d426d692cd3b4642916e0dbb58fdd7f3e2244fe89d743801"
+      "revision": "sha256:22c4e60122cd1452fcf912bf25262c4effc7649dbec4c13d36d34a70e965e10b"
     },
     "qa": {
       "path": "qa/app-navigation-shell.md",
-      "revision": "sha256:5c4a8187313853724698b5c297ea161dde69b73ac269905a563828920e2b5175"
+      "revision": "sha256:a3a560dfc2477e441ac420a78dddac5e2aa36629b07dc830f4e7040a64ef8212"
     }
   },
   "blockers": [],
@@ -123,10 +123,10 @@
   "warnings": [
     {
       "id": "WARN-N01",
-      "description": "2 case NOT_RUN ở qa/app-navigation-shell.md do thiếu browser tool trong môi trường này: (1) AC-006 phần CSS @media thật (overlay mobile hiển thị đúng theo viewport, chỉ phần JS wiring đã PASS); (2) AC-009 (theme dark/light áp đúng token lên NavSidebar/active state, đo contrast AA thật). Code đã đọc lại xác nhận không có màu/breakpoint hardcode sai, nhưng đọc code không thay thế verify thật.",
+      "description": "3 case NOT_RUN ở qa/app-navigation-shell.md do thiếu browser tool trong môi trường này: (1) AC-006 phần CSS @media/Tailwind md: thật (overlay mobile hiển thị đúng theo viewport, chỉ phần JS wiring đã PASS); (2) AC-009 (theme dark/light áp đúng token lên NavSidebar/active state, đo contrast AA thật); (3) so khớp bằng mắt với ảnh tham chiếu near.com (.demo/*.png, mới 2026-10-01) cho icon/active-state pill/spacing sidebar. Code đã đọc lại xác nhận không có màu/breakpoint hardcode sai, nhưng đọc code không thay thế verify thật.",
       "severity": "low",
       "accepted_by": null,
-      "required_before": "DONE — user hoặc môi trường có browser thật verify: (1) sidebar ẩn/overlay đúng dưới 768px và cố định ở desktop, (2) contrast NavSidebar/active state đạt AA ở cả 2 theme; báo lại evidence để coordinator ghi bổ sung vào qa/app-navigation-shell.md"
+      "required_before": "DONE — user hoặc môi trường có browser thật verify: (1) sidebar ẩn/overlay đúng dưới 768px và cố định ở desktop, (2) contrast NavSidebar/active state đạt AA ở cả 2 theme, (3) so khớp near.com qua npm run dev; báo lại evidence để coordinator ghi bổ sung vào qa/app-navigation-shell.md"
     }
   ],
   "history": [
@@ -171,6 +171,13 @@
       "transition": "CODE_REVIEW -> QA (qa_status PASS_WITH_WARNINGS)",
       "reason": "Chạy lại toàn bộ evidence (không chỉ tin review.md): tsc -b sạch, oxlint 2 warning tiền tồn tại không mới, 25/25 test frontend, vite build thành công, backend 69/69 không bị ảnh hưởng. Bổ sung verify thật ngoài review: dùng backend dev thật đang chạy (Postgres container margin-trading-auth-postgres thật, không mock) — register user test qua curl, xác nhận GET /api/auth/me trả 200 kèm session cookie hợp lệ và 401 khi không có cookie, đúng y hệt contract mà router/requireSession.ts giả định (không chỉ tin vào mock fetch của unit test). Đối chiếu đủ AC-001..AC-010: PASS toàn bộ phần kiểm được tự động (bao gồm AC-006 phần JS wiring); AC-006 phần CSS @media thật và AC-009 (contrast thật) là NOT_RUN do thiếu browser tool trong môi trường này — không phải FAIL, đọc lại code xác nhận không có sai sót rõ ràng (token/breakpoint đúng như design) nhưng không thay thế được verify thật. Required suites khác (financial/confirmation/mode-isolation/provenance/duplicates/reconciliation) đều N/A đúng bản chất feature thuần UI-chrome không financial action. Cập nhật WARN-N01 gộp cả 2 case NOT_RUN, chặn DONE không chặn PASS_WITH_WARNINGS.",
       "evidence": "qa/app-navigation-shell.md sha256:5c4a8187313853724698b5c297ea161dde69b73ac269905a563828920e2b5175; frontend test 25/25 + tsc + lint + build (verified 2026-10-01); backend test 69/69 (verified 2026-10-01); curl smoke test thật qua backend dev (localhost:3000, verified 2026-10-01): GET /api/auth/csrf-token 200, POST /api/auth/register 200, GET /api/auth/me 200 (có cookie) / 401 (không cookie)"
+    },
+    {
+      "timestamp": "2026-10-01T11:00:00Z",
+      "actor": "coordinator",
+      "transition": "QA (qa_status không đổi) — design rev r2 (near.com style), implementation/review/QA làm lại theo Invalidation",
+      "reason": "design/app-navigation-shell.md rev r2 (chỉ style: active-state pill trung tính, icon SVG, breakpoint qua Tailwind md:, data-open attribute thay class cũ) theo yêu cầu follow near.com của user — xem features/ui-visual-refresh/decision.json revision 13 cho bối cảnh đầy đủ (Tailwind migration áp dụng toàn app trong cùng 1 lần thay đổi). Theo workflows/feature-development.md 'Design đổi → invalidate frontend implementation/review/QA', đã làm lại cả 3 gate: implementation (NavSidebar/AppShell/AccountPage/routes.tsx đổi class sang Tailwind, không đổi route/API/cấu trúc nhóm), review độc lập (cùng phiên, không phát hiện finding chặn), QA (retest 25/25, giữ nguyên kết luận PASS cho mọi AC vì không AC nào đổi hành vi). WARN-N01 mở rộng phạm vi sang xác nhận so khớp near.com, cùng nguyên nhân thiếu browser tool, không phải gap mới.",
+      "evidence": "design/app-navigation-shell.md sha256:98904071a7dd3b1376c9ce258c78412d748c37101f9ff6bcc06bcf0c2892c544; features/app-navigation-shell/implementation.md, review.md, qa/app-navigation-shell.md sha256:4df5a0e7303769909ba1d1e780eb0049cc95d8f18d4285fed0b2272d31983aa1 / sha256:22c4e60122cd1452fcf912bf25262c4effc7649dbec4c13d36d34a70e965e10b / sha256:a3a560dfc2477e441ac420a78dddac5e2aa36629b07dc830f4e7040a64ef8212; frontend test 25/25 + tsc + lint + build (verified 2026-10-01)"
     }
   ]
 }

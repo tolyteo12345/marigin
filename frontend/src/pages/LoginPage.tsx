@@ -18,17 +18,17 @@ export function LoginPage() {
 
   return (
     <>
-      <div className="app-header">
+      <div className="flex items-center justify-end gap-2 border-b border-[var(--color-border)] px-6 py-4">
         <ThemeToggle />
       </div>
-      <div className="app-main">
-        <div className="card">
+      <div className="flex flex-1 items-center justify-center p-6">
+        <div className="w-full max-w-[420px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-left shadow-[var(--shadow)]">
           {showRegister ? (
             <RegisterForm onRegistered={goToAccount} />
           ) : (
             <LoginForm onLoggedIn={goToAccount} />
           )}
-          <Button variant="secondary" onClick={() => setShowRegister((v) => !v)}>
+          <Button variant="secondary" onClick={() => setShowRegister((v) => !v)} className="mt-2 w-full">
             {showRegister ? 'Đã có tài khoản? Đăng nhập' : 'Chưa có tài khoản? Đăng ký'}
           </Button>
         </div>
