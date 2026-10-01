@@ -1,0 +1,176 @@
+{
+  "feature": "app-navigation-shell",
+  "contract_version": 1,
+  "owner": "coordinator",
+  "updated_at": "2026-10-01T10:30:00Z",
+  "stage": "QA",
+  "requirement_status": "READY",
+  "ba_status": "APPROVED_WITH_CONDITIONS",
+  "architecture_status": "READY",
+  "design_status": "READY",
+  "implementation_status": "READY",
+  "review_status": "APPROVED",
+  "qa_status": "PASS_WITH_WARNINGS",
+  "implementation_authorized": true,
+  "implementation_authorization_evidence": "User instruction 2026-10-01: xác nhận \"ok\" sau khi coordinator hỏi có tiến hành IMPLEMENTATION hay không, với architecture_status và design_status đều đã READY.",
+  "implementation_revision": "sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151",
+  "reviewed_revision": "sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151",
+  "qa_revision": "sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151",
+  "artifacts": {
+    "requirement": {
+      "path": "requirements/app-navigation-shell.md",
+      "revision": "sha256:95f8aea2ee636be86a4d55ea7e136168eebe2fc6772b6bb3f025653925a17a25"
+    },
+    "ba": {
+      "path": "analysis/app-navigation-shell-feasibility.md",
+      "revision": "sha256:5f12a835d8eeb61bec3a08cbcc8a430511a62dc95f215548a0c769d5146b2f02"
+    },
+    "architecture": {
+      "path": "architecture/app-navigation-shell.md",
+      "revision": "sha256:6ab64ae1c92a5e28b7a0c60ab863a7c7ee7b11ed6f46e7ab22e629fe91a020bf"
+    },
+    "design": {
+      "path": "design/app-navigation-shell.md",
+      "revision": "sha256:d2a66dea812c7363fde3694a282f154f75fa485b24a0eee07d34cba43cf5b14c"
+    },
+    "implementation": {
+      "path": "features/app-navigation-shell/implementation.md",
+      "revision": "sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151"
+    },
+    "review": {
+      "path": "features/app-navigation-shell/review.md",
+      "revision": "sha256:fe2f2cca731dfe96d426d692cd3b4642916e0dbb58fdd7f3e2244fe89d743801"
+    },
+    "qa": {
+      "path": "qa/app-navigation-shell.md",
+      "revision": "sha256:5c4a8187313853724698b5c297ea161dde69b73ac269905a563828920e2b5175"
+    }
+  },
+  "blockers": [],
+  "open_questions": [
+    {
+      "id": "OQ-N01",
+      "description": "Thư viện client-side router hiện hành cho React (version cụ thể, tình trạng maintain) để implement deep-linkable routing — cần evidence từ tài liệu chính thức, không chọn theo trí nhớ.",
+      "owner": "ba-feasibility-agent",
+      "affected_gates": ["BA_FEASIBILITY", "ARCHITECTURE"],
+      "status": "RESOLVED",
+      "evidence": "analysis/app-navigation-shell-feasibility.md EV-001/EV-002/EV-003: React Router v8.0.0 (2026-06-17), yêu cầu React 19.2.7+/Node 22.22.0+/Vite 7+ — repo hiện có React 19.2.8, Vite 8.3.0, Node 22.23.2, đều thoả. Hỗ trợ SPA thuần client-side qua Data mode (createBrowserRouter) hoặc Declarative mode."
+    },
+    {
+      "id": "OQ-N02",
+      "description": "Roadmap modules trong docs/DOMAIN.md (Margin Dashboard, Borrowable Coin Scanner, Risk Engine, Repayment Manager, Portfolio Analytics...) chưa có nav item ở MVP (BR-002); khi 1 module đạt DONE, coordinator dispatch requirement riêng để bổ sung nhóm/mục nav.",
+      "owner": "product + user",
+      "affected_gates": [],
+      "status": "OPEN",
+      "evidence": null
+    },
+    {
+      "id": "OQ-N03",
+      "description": "Giá trị breakpoint cụ thể (px) chuyển sidebar cố định (desktop) sang overlay (mobile).",
+      "owner": "design-agent",
+      "affected_gates": ["DESIGN"],
+      "status": "RESOLVED",
+      "evidence": "design/app-navigation-shell.md: --sidebar-breakpoint: 768px, --sidebar-width: 240px."
+    },
+    {
+      "id": "OQ-N04",
+      "description": "Hành vi khi (a) back button lúc overlay mở, (b) logout giữa route con rồi đăng nhập lại có quay về đúng route cũ hay không.",
+      "owner": "architect + design",
+      "affected_gates": ["ARCHITECTURE", "DESIGN"],
+      "status": "RESOLVED",
+      "evidence": "architecture/app-navigation-shell.md mục 'Giải quyết OQ-N04': (a) overlay là state cục bộ NavSidebar, tự đóng qua useEffect theo location.pathname, không can thiệp history; (b) luôn điều hướng về /account sau đăng nhập, không cố nhớ route trước đó (chủ ý đơn giản hoá MVP)."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-N01",
+      "description": "Thêm client-side router là thay đổi cấu trúc App.tsx tương đối lớn (từ if/else state sang route-based) — có thể ảnh hưởng test hiện có (App.test.tsx), cần rà soát khi implement.",
+      "owner": "architect-agent",
+      "status": "RESOLVED",
+      "mitigation": "Chuyển thành kế hoạch cụ thể qua COND-N02: architecture/app-navigation-shell.md đã liệt kê route contract + bảng AC->test dùng createMemoryRouter, không còn là risk mơ hồ — việc thực thi (viết lại App.test.tsx) thuộc IMPLEMENTATION.",
+      "accepted_by": null
+    }
+  ],
+  "conditions": [
+    {
+      "id": "COND-N01",
+      "description": "Chốt cụ thể: dùng React Router v8, chế độ Data mode (createBrowserRouter) hay Declarative mode, và cách route guard implement để không flash nội dung bảo vệ trước khi redirect (đáp ứng nghiêm ngặt AC-007).",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/app-navigation-shell.md: React Router v8, Data mode (createBrowserRouter), loader `requireSession` throw redirect('/login'), HydrateFallback cho initial loading."
+    },
+    {
+      "id": "COND-N02",
+      "description": "Thiết kế lại App.tsx (if/else state -> route tree) kèm kế hoạch cập nhật App.test.tsx tương ứng (dùng createMemoryRouter/MemoryRouter), không để test cũ bị xoá mà không thay bằng test tương đương.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/app-navigation-shell.md bảng Validation: từng AC map tới test dùng createMemoryRouter; mục Validation và rollout yêu cầu rõ App.test.tsx phải viết lại, không để orphan test if/else cũ."
+    },
+    {
+      "id": "COND-N03",
+      "description": "Ghi rõ trong architecture: production build/host phải fallback index.html cho path SPA — ghi chú vận hành cho triển khai thật sau này, không thuộc phạm vi DONE của feature này.",
+      "owner": "architect-agent",
+      "affected_gates": ["ARCHITECTURE"],
+      "due_gate": "ARCHITECTURE",
+      "status": "RESOLVED",
+      "evidence": "architecture/app-navigation-shell.md mục Validation và rollout: yêu cầu host/CDN fallback index.html (vd Nginx try_files), ghi chú rõ không thuộc DONE của feature này."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "WARN-N01",
+      "description": "2 case NOT_RUN ở qa/app-navigation-shell.md do thiếu browser tool trong môi trường này: (1) AC-006 phần CSS @media thật (overlay mobile hiển thị đúng theo viewport, chỉ phần JS wiring đã PASS); (2) AC-009 (theme dark/light áp đúng token lên NavSidebar/active state, đo contrast AA thật). Code đã đọc lại xác nhận không có màu/breakpoint hardcode sai, nhưng đọc code không thay thế verify thật.",
+      "severity": "low",
+      "accepted_by": null,
+      "required_before": "DONE — user hoặc môi trường có browser thật verify: (1) sidebar ẩn/overlay đúng dưới 768px và cố định ở desktop, (2) contrast NavSidebar/active state đạt AA ở cả 2 theme; báo lại evidence để coordinator ghi bổ sung vào qa/app-navigation-shell.md"
+    }
+  ],
+  "history": [
+    {
+      "timestamp": "2026-09-30T13:00:00Z",
+      "actor": "coordinator (product-requirement-agent role)",
+      "transition": "IDEA -> REQUIREMENT (requirement_status READY)",
+      "reason": "User yêu cầu tạo khung điều hướng tổng thể (app shell/navigation) sau khi user-authentication, ui-visual-refresh, binance-read-only-connection đã DONE/QA, vì hiện tại App.tsx chỉ xếp chồng AccountLinkPanel + BinanceConnectionsPage không có nav nào. Trước khi viết requirement, hỏi user 4 quyết định cấu trúc cốt lõi (AskUserQuestion, không tự chọn ngầm theo AGENTS.md): (1) sidebar trái cố định/collapsible (chọn thay vì topbar/hybrid), (2) nhóm mục nav theo domain ngay từ đầu (chọn thay vì danh sách phẳng), (3) tách nội dung hiện tại thành 2 trang riêng Tài khoản/Kết nối Binance (chọn thay vì giữ 1 dashboard gộp), (4) routing phải deep-linkable qua URL (chọn thay vì chỉ đổi state nội bộ) — kéo theo dependency kỹ thuật mới (client-side router, chưa có trong frontend/package.json) cần BA xác minh (OQ-N01). Role-based visibility xác nhận out-of-scope vì hệ thống chưa có khái niệm role (kế thừa requirements/user-authentication.md). Không thêm placeholder nav cho roadmap module chưa DONE (OQ-N02) để tránh dead-link/hứa hẹn tính năng chưa có. AC-001..AC-010 đủ cho loading/empty(chưa đăng nhập)/active-state/responsive/404/route-guard/theme.",
+      "evidence": "requirements/app-navigation-shell.md sha256:95f8aea2ee636be86a4d55ea7e136168eebe2fc6772b6bb3f025653925a17a25; user quyết định qua AskUserQuestion 2026-09-30 (IA structure=Sidebar trái, Grouping=Nhóm theo domain, Content split=Tách 2 trang riêng, Routing=Deep-linkable)"
+    },
+    {
+      "timestamp": "2026-09-30T13:30:00Z",
+      "actor": "coordinator (ba-feasibility-agent role)",
+      "transition": "REQUIREMENT -> BA_FEASIBILITY (ba_status APPROVED_WITH_CONDITIONS)",
+      "reason": "Xác minh OQ-N01 (thư viện client-side router) bằng nguồn chính thức (reactrouter.com changelog): React Router v8.0.0 (2026-06-17) yêu cầu React 19.2.7+/Node 22.22.0+/Vite 7+, react-router-dom đã bị loại bỏ (gộp vào react-router + react-router/dom). Đối chiếu trực tiếp với repo (frontend/package.json, node -v): React 19.2.8, Vite 8.3.0, Node 22.23.2 — đều thoả mãn, không có blocker version. Không có Financial/Provenance feasibility áp dụng (feature không tính toán tài chính). Mọi AC-001..AC-010 feasible kỹ thuật; đề xuất Data mode (createBrowserRouter) cho architect để route guard (AC-007) không bị flash nội dung trước khi redirect. Phát hiện điểm cần chốt ở ARCHITECTURE (không phải blocker): chế độ router cụ thể + kế hoạch viết lại App.test.tsx (COND-N01/N02) và ghi chú vận hành fallback index.html cho SPA khi deploy thật (COND-N03). OQ-N02/N03/N04 giữ nguyên OPEN (product/user hoặc design/architect quyết, không phải BA).",
+      "evidence": "analysis/app-navigation-shell-feasibility.md sha256:5f12a835d8eeb61bec3a08cbcc8a430511a62dc95f215548a0c769d5146b2f02; frontend/package.json (React 19.2.8, Vite 8.3.0); node -v = v22.23.2 (verified 2026-09-30)"
+    },
+    {
+      "timestamp": "2026-10-01T09:00:00Z",
+      "actor": "coordinator (architect-agent + design-agent role)",
+      "transition": "BA_FEASIBILITY -> ARCHITECTURE ‖ DESIGN (architecture_status READY, design_status READY)",
+      "reason": "Thiết kế song song theo BA APPROVED_WITH_CONDITIONS. Architecture: feature không chạm backend/DB (thuần frontend) — thêm react-router v8 (Data mode, createBrowserRouter), route tree với layout route bảo vệ dùng loader requireSession() gọi lại GET /api/auth/me hiện có (không đổi API), HydrateFallback cho AC-010, catch-all 404 cho AC-008. Giải quyết COND-N01 (Data mode + loader guard để không flash nội dung — AC-007), COND-N02 (kế hoạch viết lại App.test.tsx bằng createMemoryRouter, bảng AC->test đầy đủ), COND-N03 (ghi chú vận hành fallback index.html khi deploy production, không thuộc DONE). Resolve OQ-N04 bằng quyết định kỹ thuật thuần (không cần user): overlay tự đóng theo route change (không can thiệp history), logout giữa route rồi login lại luôn về /account mặc định (không lưu intended destination, chủ ý đơn giản hoá). Design: thêm NavSidebar (component mới, đặt ở components/layout/ vì là layout chrome, không phải components/common/), responsive breakpoint 768px (resolve OQ-N03) với cơ chế thuần CSS media query tránh kẹt overlay khi resize qua breakpoint, active state tái dùng pattern viền trái đã có ở InlineAlert/InlineStatus (không phát minh pattern mới), NotFoundPage cố ý không hiện sidebar/header để tránh lộ thông tin route qua hành vi khác biệt theo trạng thái đăng nhập. Không còn open question nào chặn implementation; OQ-N02 (placeholder roadmap) giữ nguyên OPEN, không ảnh hưởng gate này.",
+      "evidence": "architecture/app-navigation-shell.md sha256:6ab64ae1c92a5e28b7a0c60ab863a7c7ee7b11ed6f46e7ab22e629fe91a020bf; design/app-navigation-shell.md sha256:d2a66dea812c7363fde3694a282f154f75fa485b24a0eee07d34cba43cf5b14c"
+    },
+    {
+      "timestamp": "2026-10-01T09:30:00Z",
+      "actor": "coordinator (frontend-agent role)",
+      "transition": "ARCHITECTURE/DESIGN -> IMPLEMENTATION (implementation_status READY)",
+      "reason": "User xác nhận 'ok' để bắt đầu implementation. Thuần frontend, không đổi backend/DB (đúng dự kiến). Cài react-router@8.4.0; tạo navConfig.ts, requireSession loader, routes.tsx (route tree Data mode đúng architecture) + LoadingShell.tsx (tách riêng để tránh warning fast-refresh — deviation kỹ thuật nhỏ, không đổi hành vi), AppShell.tsx, NavSidebar.tsx, AccountPage/LoginPage/NotFoundPage; xoá App.tsx/App.test.tsx cũ, main.tsx dùng RouterProvider; CSS thêm sidebar/overlay responsive (768px hardcode trong @media vì CSS không đọc được custom property cho điều kiện breakpoint) và dọn 2 class orphan (.dashboard, .panel + .panel) do chính thay đổi này tạo ra. Viết lại App.test.tsx thành router/routes.test.tsx (COND-N02) dùng createMemoryRouter từ đúng routeConfig thật — 6 test mới cho AC-001/002/003/004/005/007/008/010. Toàn bộ 24/24 test frontend pass (18 cũ không đổi + 6 mới), tsc -b sạch, oxlint không có warning mới, vite build thành công, vite preview + curl xác nhận SPA fallback hoạt động cho deep-link. Backend 69/69 test vẫn pass (không bị ảnh hưởng, đúng dự kiến). Hạn chế môi trường: không có browser tool thật để đo contrast AC-009 — ghi WARN-N01, cần user/QA verify thủ công trước DONE.",
+      "evidence": "features/app-navigation-shell/implementation.md sha256:9437567e7d361d8b4e5967c31670ca8db9650cc5705b31213fb254cdb137f77f; frontend/src/router/routes.test.tsx (6/6 pass); frontend test suite 24/24 pass (verified 2026-10-01); npx tsc -b sạch; npm run lint không warning mới; npm run build thành công; backend test 69/69 pass (verified 2026-10-01)"
+    },
+    {
+      "timestamp": "2026-10-01T10:00:00Z",
+      "actor": "coordinator (code-review-agent role)",
+      "transition": "IMPLEMENTATION -> CODE_REVIEW (review_status APPROVED)",
+      "reason": "Review độc lập trong cùng phiên (ghi rõ hạn chế độc lập, theo đúng tiền lệ binance-read-only-connection). Đọc lại toàn bộ diff: xác nhận route tree pathless layout khớp đúng path tuyệt đối (deep-link test pass), 404 route nằm ngoài cây 'protected' không chạy requireSession, kỹ thuật flexbox margin-left:auto cho nav-toggle-btn/app-header-actions đúng (không phải bug như nghi ngờ ban đầu), backdrop mobile bị CSS display:none vô hiệu hoá đúng cách trên desktop dù state JS còn sót true, không có file backend nào bị đụng tới. Phát hiện 1 gap (MEDIUM): AC-006 (JS wiring của toggle sidebar mobile) chưa có test tự động dù hoàn toàn test được trong jsdom (phần CSS @media thật thì đúng là không test được, đã ghi WARN-N01 riêng) — đã thêm 1 test ngay trong vòng review và verify lại toàn bộ: 25/25 test, tsc sạch, lint không warning mới, build thành công. Đối chiếu đủ AC-001..AC-010 theo bảng Validation của architecture — PASS toàn bộ phần kiểm được bằng automated test; AC-006 (CSS thật) và AC-009 (contrast thật) không kiểm được trong môi trường này, đã có WARN-N01, không chặn review vì là hạn chế môi trường đã biết trước, không phải lỗi code.",
+      "evidence": "features/app-navigation-shell/review.md sha256:fe2f2cca731dfe96d426d692cd3b4642916e0dbb58fdd7f3e2244fe89d743801; features/app-navigation-shell/implementation.md sha256:cfaa1f5409a5df1dd60fe3cca17d13041ce74a46025a76098583d6c649c67151; frontend test 25/25 pass (verified 2026-10-01); tsc -b sạch; oxlint không warning mới; vite build thành công"
+    },
+    {
+      "timestamp": "2026-10-01T10:30:00Z",
+      "actor": "coordinator (qa-agent role)",
+      "transition": "CODE_REVIEW -> QA (qa_status PASS_WITH_WARNINGS)",
+      "reason": "Chạy lại toàn bộ evidence (không chỉ tin review.md): tsc -b sạch, oxlint 2 warning tiền tồn tại không mới, 25/25 test frontend, vite build thành công, backend 69/69 không bị ảnh hưởng. Bổ sung verify thật ngoài review: dùng backend dev thật đang chạy (Postgres container margin-trading-auth-postgres thật, không mock) — register user test qua curl, xác nhận GET /api/auth/me trả 200 kèm session cookie hợp lệ và 401 khi không có cookie, đúng y hệt contract mà router/requireSession.ts giả định (không chỉ tin vào mock fetch của unit test). Đối chiếu đủ AC-001..AC-010: PASS toàn bộ phần kiểm được tự động (bao gồm AC-006 phần JS wiring); AC-006 phần CSS @media thật và AC-009 (contrast thật) là NOT_RUN do thiếu browser tool trong môi trường này — không phải FAIL, đọc lại code xác nhận không có sai sót rõ ràng (token/breakpoint đúng như design) nhưng không thay thế được verify thật. Required suites khác (financial/confirmation/mode-isolation/provenance/duplicates/reconciliation) đều N/A đúng bản chất feature thuần UI-chrome không financial action. Cập nhật WARN-N01 gộp cả 2 case NOT_RUN, chặn DONE không chặn PASS_WITH_WARNINGS.",
+      "evidence": "qa/app-navigation-shell.md sha256:5c4a8187313853724698b5c297ea161dde69b73ac269905a563828920e2b5175; frontend test 25/25 + tsc + lint + build (verified 2026-10-01); backend test 69/69 (verified 2026-10-01); curl smoke test thật qua backend dev (localhost:3000, verified 2026-10-01): GET /api/auth/csrf-token 200, POST /api/auth/register 200, GET /api/auth/me 200 (có cookie) / 401 (không cookie)"
+    }
+  ]
+}
