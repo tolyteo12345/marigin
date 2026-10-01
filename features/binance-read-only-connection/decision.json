@@ -2,7 +2,7 @@
   "feature": "binance-read-only-connection",
   "contract_version": 1,
   "owner": "coordinator",
-  "updated_at": "2026-09-30T12:30:00Z",
+  "updated_at": "2026-10-01T03:00:00Z",
   "stage": "QA",
   "requirement_status": "READY",
   "ba_status": "APPROVED_WITH_CONDITIONS",
@@ -14,7 +14,7 @@
   "implementation_authorization_evidence": "User instruction 2026-09-30: sau khi user-authentication đạt implementation READY + review APPROVED + qa PASS_WITH_WARNINGS (session/CSRF/req.user.id contract verify đầy đủ qua unit+e2e test thật, chỉ còn 2 việc không liên quan — manual Telegram smoke test và npm audit acceptance — cần user tự làm trước DONE), user chọn gỡ BLOCKER-ARCH-001 ngay và yêu cầu bắt đầu IMPLEMENTATION cho binance-read-only-connection, không chờ user-authentication DONE hoàn toàn.",
   "implementation_revision": null,
   "reviewed_revision": "sha256:9e701ac0b274ef9194d9838046450fae525b0101574f715e353e6f54ba559fe3",
-  "qa_revision": "sha256:9e701ac0b274ef9194d9838046450fae525b0101574f715e353e6f54ba559fe3",
+  "qa_revision": "sha256:796c86ab70f68a1c18a5dfc8ddb0d50a43ee2282e35a7c941e5a30c5f4e35f1d",
   "artifacts": {
     "requirement": {
       "path": "requirements/binance-read-only-connection.md",
@@ -38,7 +38,7 @@
     },
     "qa": {
       "path": "qa/binance-read-only-connection.md",
-      "revision": "sha256:5190255868c8f6cd968adc0cd5fb3bc16ccef8ddcc630c89d49f74b15bbfe631"
+      "revision": "sha256:796c86ab70f68a1c18a5dfc8ddb0d50a43ee2282e35a7c941e5a30c5f4e35f1d"
     },
     "design": {
       "path": "design/binance-read-only-connection.md",
@@ -165,10 +165,10 @@
     },
     {
       "id": "WARN-002",
-      "description": "RISK-001 mitigation (manual smoke test tài khoản margin thật CÓ HIỆU LỰC) và click-through UI thật trong browser đều chưa thực hiện được — qa-agent (coordinator) không có tài khoản Binance thật/API key thật hợp lệ và không có công cụ trình duyệt trong môi trường này, không giả lập kết quả. Chặn DONE, không chặn qa_status PASS_WITH_WARNINGS vì mọi AC đã có bằng chứng tự động + verify thật (đường lỗi, dùng garbage key) với Binance.",
+      "description": "WARN-002 gồm 2 điều kiện độc lập, cả 2 đều required_before DONE — chỉ 1/2 xong KHÔNG đủ để resolve toàn bộ warning này. (1) RISK-001 mitigation (manual smoke test tài khoản margin thật CÓ HIỆU LỰC) — VẪN OPEN, chưa thực hiện. qa-agent/coordinator không có tài khoản Binance thật/API key thật hợp lệ, không được tự tạo/giả lập, không đoán kết quả — chờ user tự thực hiện (xem qa/binance-read-only-connection.md mục \"Việc còn lại\" #1). (2) Click-through UI thật trong browser (add connection → xem trạng thái → xem snapshot → revoke) — ĐÃ THỰC HIỆN 2026-10-01 bằng Playwright + Chromium thật trên stack thật (Postgres/backend/frontend chạy thật, user đăng ký thật). Kết quả PASS cho: add connection garbage key → INVALID hiển thị đúng; VERIFIED status + banner permission-too-broad hiển thị đúng (seed trực tiếp Postgres, không gọi Binance thật, không sửa code sản phẩm); revoke → biến mất khỏi list đúng thiết kế. 1 giới hạn đã ghi rõ: nhánh snapshot THÀNH CÔNG (bảng userAssets với dữ liệu thật) không verify được bằng mắt vì đòi hỏi tài khoản Binance thật — đúng phạm vi loại trừ của điều kiện (1), không phải thiếu sót của phần (2). Không phát hiện defect nào khi so khớp UI với design ở các nhánh verify được. Xem qa/binance-read-only-connection.md mục \"Cập nhật 2026-10-01 — click-through UI thật\".",
       "severity": "medium",
       "accepted_by": null,
-      "required_before": "DONE — user tự thực hiện theo qa/binance-read-only-connection.md mục \"Việc còn lại\" #1-2, báo lại evidence để coordinator ghi bổ sung"
+      "required_before": "DONE — điều kiện (1) (RISK-001, tài khoản Binance thật) vẫn chờ user tự thực hiện và báo lại evidence; điều kiện (2) (click-through UI thật) đã PASS, không cần làm lại trừ khi có thay đổi UI liên quan"
     }
   ],
   "history": [
@@ -255,6 +255,13 @@
       "transition": "QA (qa_status PASS_WITH_WARNINGS, không đổi stage)",
       "reason": "Chạy lại toàn bộ evidence (không chỉ tin review.md): tsc/build sạch, unit 69/69, e2e 16/16, frontend 18/18. Restart backend dist thật, chạy lại Postman/newman (13/13, 0 fail) để xác nhận API thật khớp Swagger/Postman sau các fix của review (không chỉ đọc tài liệu). Đối chiếu đủ AC-001..AC-008: PASS toàn bộ, có bằng chứng tự động + ít nhất 1 lần verify thật (đường lỗi, garbage key) với Binance cho AC-001/AC-002. Đóng WARN-001 (U-D01 xác nhận đã chọn filter REVOKED khỏi list, khớp design). Thêm WARN-002: RISK-001 mitigation (manual smoke test tài khoản margin thật CÓ HIỆU LỰC) và click-through UI browser thật đều chưa làm được — qa-agent không có tài khoản Binance thật hợp lệ/công cụ trình duyệt trong môi trường này, không giả lập. Đề xuất qa_status: PASS_WITH_WARNINGS — feature CHƯA đủ điều kiện DONE (cần user tự chạy 2 việc ở WARN-002) nhưng review+QA tự động đã đóng xong, không còn việc gì backend/frontend-agent có thể tự làm thêm.",
       "evidence": "qa/binance-read-only-connection.md sha256:5190255868c8f6cd968adc0cd5fb3bc16ccef8ddcc630c89d49f74b15bbfe631; backend/test 69/69 + test:e2e 16/16 + newman 13/13 (verified 2026-09-30); frontend 18/18 (verified 2026-09-30)"
+    },
+    {
+      "timestamp": "2026-10-01T03:00:00Z",
+      "actor": "coordinator (qa-agent role)",
+      "transition": "QA (qa_status PASS_WITH_WARNINGS, không đổi stage) — bổ sung evidence click-through UI thật cho WARN-002 phần 2/2",
+      "reason": "Môi trường phiên này có công cụ trình duyệt thật (Playwright + Chromium) — thực hiện phần còn thiếu của WARN-002 (click-through UI browser thật), KHÔNG động vào phần RISK-001 (tài khoản Binance margin thật — không có, không được tự tạo/giả lập, giữ nguyên OPEN). Dựng stack thật: Postgres (docker-compose, instance chia sẻ sẵn có), backend `nest start --watch` cổng 3010, frontend `vite` cổng 5180; đăng ký 1 user thật qua UI. Click-through: (a) add connection với garbage API key/secret → gọi Binance thật (đường lỗi) → UI hiển thị đúng INVALID theo design; (b) VERIFIED status + (c) banner permission-too-broad verify bằng cách seed trực tiếp 1 row Postgres (fixture, không gọi Binance, không sửa backend/src hay frontend/src) → UI hiển thị đúng; nhánh snapshot THÀNH CÔNG (bảng userAssets dữ liệu thật) không verify được vì đòi hỏi tài khoản Binance thật — ghi rõ là giới hạn thuộc đúng phạm vi loại trừ RISK-001, không cố làm bằng cách khác (không sửa code adapter, không gọi Binance thật với secret giả); nhánh lỗi 503 của snapshot (decrypt thất bại) verify được và đúng thiết kế; (d) revoke cả 2 connection → biến mất khỏi list đúng thiết kế, list về empty state. Không phát hiện defect nào khi so khớp UI với design/binance-read-only-connection.md ở các nhánh verify được. Không sửa code sản phẩm. WARN-002 vẫn KHÔNG resolve toàn bộ vì là 1 warning gộp 2 điều kiện required_before DONE — chỉ 1/2 xong; ghi rõ trong WARN-002.description/required_before phần nào PASS (click-through UI), phần nào vẫn chờ user (RISK-001, tài khoản Binance thật). Không tự chuyển stage sang DONE.",
+      "evidence": "qa/binance-read-only-connection.md sha256:796c86ab70f68a1c18a5dfc8ddb0d50a43ee2282e35a7c941e5a30c5f4e35f1d (mục \"Cập nhật 2026-10-01 — click-through UI thật\"); features/binance-read-only-connection/evidence/browser-verify-2026-10-01/*.png (11 ảnh chụp từng bước)"
     }
   ],
   "design_status": "READY"
