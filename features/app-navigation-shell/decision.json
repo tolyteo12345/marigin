@@ -2,8 +2,8 @@
   "feature": "app-navigation-shell",
   "contract_version": 1,
   "owner": "coordinator",
-  "updated_at": "2026-10-01T10:30:00Z",
-  "stage": "QA",
+  "updated_at": "2026-10-01T02:50:12Z",
+  "stage": "DONE",
   "requirement_status": "READY",
   "ba_status": "APPROVED_WITH_CONDITIONS",
   "architecture_status": "READY",
@@ -43,7 +43,7 @@
     },
     "qa": {
       "path": "qa/app-navigation-shell.md",
-      "revision": "sha256:a3a560dfc2477e441ac420a78dddac5e2aa36629b07dc830f4e7040a64ef8212"
+      "revision": "sha256:625c2276aef6eb8409c0350d33043895dda1c5f3143849c8cfabe1a9162b7af4"
     }
   },
   "blockers": [],
@@ -126,7 +126,9 @@
       "description": "3 case NOT_RUN ở qa/app-navigation-shell.md do thiếu browser tool trong môi trường này: (1) AC-006 phần CSS @media/Tailwind md: thật (overlay mobile hiển thị đúng theo viewport, chỉ phần JS wiring đã PASS); (2) AC-009 (theme dark/light áp đúng token lên NavSidebar/active state, đo contrast AA thật); (3) so khớp bằng mắt với ảnh tham chiếu near.com (.demo/*.png, mới 2026-10-01) cho icon/active-state pill/spacing sidebar. Code đã đọc lại xác nhận không có màu/breakpoint hardcode sai, nhưng đọc code không thay thế verify thật.",
       "severity": "low",
       "accepted_by": null,
-      "required_before": "DONE — user hoặc môi trường có browser thật verify: (1) sidebar ẩn/overlay đúng dưới 768px và cố định ở desktop, (2) contrast NavSidebar/active state đạt AA ở cả 2 theme, (3) so khớp near.com qua npm run dev; báo lại evidence để coordinator ghi bổ sung vào qa/app-navigation-shell.md"
+      "required_before": "DONE — user hoặc môi trường có browser thật verify: (1) sidebar ẩn/overlay đúng dưới 768px và cố định ở desktop, (2) contrast NavSidebar/active state đạt AA ở cả 2 theme, (3) so khớp near.com qua npm run dev; báo lại evidence để coordinator ghi bổ sung vào qa/app-navigation-shell.md",
+      "status": "RESOLVED",
+      "evidence": "qa/app-navigation-shell.md mục 'Cập nhật 2026-10-01 — verify bằng browser thật': Playwright (Chromium) thật chạy trên stack dev thật (backend localhost:3000 + Postgres container margin-trading-auth-postgres, frontend localhost:5173), user thật qua /api/auth/register. (1) AC-006: viewport 375x667 — nav đóng ban đầu nằm off-screen (x=-252, class có -translate-x-full), bấm toggle → overlay vào đúng vị trí on-screen (x=0, class có translate-x-0), chọn mục nav khác → tự đóng lại (class trở về -translate-x-full); viewport 1440x900 — sidebar cố định tại x=0 (static, không phải overlay), nút toggle mobile bị ẩn (md:hidden hoạt động đúng), không có backdrop nào tồn tại trên DOM. (2) AC-009: đo contrast thật bằng getComputedStyle trên link active (aria-current=page) ở cả 2 theme (set qua localStorage mtl-theme + reload) — dark: text rgb(250,250,250) trên nền rgb(39,39,42) = 14.27:1; light: text rgb(26,29,33) trên nền rgb(226,229,233) = 13.38:1; cả hai vượt xa ngưỡng WCAG AA 4.5:1. (3) So khớp near.com: đối chiếu trực quan screenshot thật (desktop full-page, cả 2 theme) với .demo/home/home.png và .demo/home/account.png — bố cục sidebar trái cố định, active-state pill bo góc màu trung tính, icon line-style, grouping theo nhãn in hoa nhỏ đều khớp tinh thần thiết kế near.com; không có pixel-perfect nhưng không có sai lệch đáng kể nào được ghi nhận. Cả 3 phần đều PASS, không phát hiện defect. Script verify (ad-hoc, không phải sản phẩm): .qa-scripts/app-navigation-shell-browser-verify.js."
     }
   ],
   "history": [
@@ -178,6 +180,13 @@
       "transition": "QA (qa_status không đổi) — design rev r2 (near.com style), implementation/review/QA làm lại theo Invalidation",
       "reason": "design/app-navigation-shell.md rev r2 (chỉ style: active-state pill trung tính, icon SVG, breakpoint qua Tailwind md:, data-open attribute thay class cũ) theo yêu cầu follow near.com của user — xem features/ui-visual-refresh/decision.json revision 13 cho bối cảnh đầy đủ (Tailwind migration áp dụng toàn app trong cùng 1 lần thay đổi). Theo workflows/feature-development.md 'Design đổi → invalidate frontend implementation/review/QA', đã làm lại cả 3 gate: implementation (NavSidebar/AppShell/AccountPage/routes.tsx đổi class sang Tailwind, không đổi route/API/cấu trúc nhóm), review độc lập (cùng phiên, không phát hiện finding chặn), QA (retest 25/25, giữ nguyên kết luận PASS cho mọi AC vì không AC nào đổi hành vi). WARN-N01 mở rộng phạm vi sang xác nhận so khớp near.com, cùng nguyên nhân thiếu browser tool, không phải gap mới.",
       "evidence": "design/app-navigation-shell.md sha256:98904071a7dd3b1376c9ce258c78412d748c37101f9ff6bcc06bcf0c2892c544; features/app-navigation-shell/implementation.md, review.md, qa/app-navigation-shell.md sha256:4df5a0e7303769909ba1d1e780eb0049cc95d8f18d4285fed0b2272d31983aa1 / sha256:22c4e60122cd1452fcf912bf25262c4effc7649dbec4c13d36d34a70e965e10b / sha256:a3a560dfc2477e441ac420a78dddac5e2aa36629b07dc830f4e7040a64ef8212; frontend test 25/25 + tsc + lint + build (verified 2026-10-01)"
+    },
+    {
+      "timestamp": "2026-10-01T02:50:12Z",
+      "actor": "coordinator (qa-agent role, browser verification)",
+      "transition": "QA (qa_status không đổi, WARN-N01 OPEN -> RESOLVED) -> DONE",
+      "reason": "Môi trường QA lần này có browser tool thật (Playwright/Chromium), dùng để chạy lại chính xác 3 case NOT_RUN còn lại của WARN-N01 trên stack dev thật đang chạy (backend localhost:3000 + Postgres container margin-trading-auth-postgres thật, frontend localhost:5173 vite dev, cả hai đã chạy sẵn từ main checkout cùng commit với HEAD của nhánh này nên là cùng 1 bản code đã QA trước đó — không khởi động lại để tránh xung đột port với phiên khác). User thật đăng ký qua POST /api/auth/register thật, đăng nhập qua UI thật để lấy session cookie. (1) AC-006: đo bounding box + class thật của <nav> ở viewport 375x667 (mobile) và 1440x900 (desktop) — xác nhận overlay ẩn/hiện đúng theo breakpoint 768px Tailwind md:, tự đóng khi chọn nav khác, nút toggle và backdrop bị ẩn đúng trên desktop. (2) AC-009: đo contrast thật bằng getComputedStyle (không tính tay từ CSS source) trên link active ở cả dark/light theme (toggle qua localStorage mtl-theme) — 14.27:1 (dark) và 13.38:1 (light), đều vượt xa ngưỡng AA 4.5:1, không có defect. (3) Chụp screenshot desktop/mobile thật, đối chiếu bằng mắt với .demo/home/home.png và .demo/home/account.png (ảnh tham chiếu near.com, không tracked trong git, đọc trực tiếp từ main checkout) — khớp tinh thần thiết kế (sidebar trái, active pill bo góc, icon line-style, grouping uppercase label), không có sai lệch đáng kể. Không phát hiện defect nào ở cả 3 phần → WARN-N01 chuyển OPEN -> RESOLVED. Đây là điều kiện chặn DONE DUY NHẤT còn lại (đã rà soát toàn bộ blockers [] rỗng, mọi open_questions ảnh hưởng gate đã RESOLVED trừ OQ-N02 không có affected_gates, mọi risks/conditions đều RESOLVED) → chuyển stage QA -> DONE. Playwright được cài ad-hoc ngoài repo (scratchpad npm project riêng, KHÔNG thêm vào frontend/package.json) để không làm thay đổi dependency sản phẩm; script verify giữ lại tại .qa-scripts/app-navigation-shell-browser-verify.js (không phải sản phẩm, công cụ QA) vì có thể tái dùng cho QA sau này. Không có thay đổi nào ở frontend/src hay backend/src trong quá trình này.",
+      "evidence": "qa/app-navigation-shell.md mục 'Cập nhật 2026-10-01 — verify bằng browser thật'; .qa-scripts/app-navigation-shell-browser-verify.js; contrast đo được: dark 14.27:1, light 13.38:1 (ngưỡng AA 4.5:1); screenshot thật (không commit vào repo, lưu local tại scratchpad phiên QA — xem mô tả trong qa/app-navigation-shell.md); curl xác nhận POST /api/auth/register 200 cho user test dùng để đăng nhập qua UI"
     }
   ]
 }

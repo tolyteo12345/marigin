@@ -66,3 +66,39 @@ Toàn bộ test tự động pass (25 frontend + 69 backend không bị ảnh h�
 Chạy lại evidence: `tsc -b` sạch, 25/25 test pass, build thành công, lint không warning mới. Đối chiếu AC-001..010: không AC nào đổi hành vi (chỉ style/icon), giữ nguyên kết luận PASS của lần QA trước cho từng AC. WARN-N01 (AC-006 CSS thật, AC-009 contrast thật) mở rộng phạm vi sang xác nhận so khớp near.com (icon/active-state/spacing sidebar) — cùng nguyên nhân thiếu browser tool, không phải gap mới phát sinh từ thay đổi lần này.
 
 **qa_status: PASS_WITH_WARNINGS** (không đổi). WARN-N01 vẫn là điều kiện duy nhất chặn DONE.
+
+## Cập nhật 2026-10-01 — verify bằng browser thật
+Môi trường QA lần này có công cụ browser thật (Playwright 1.x + Chromium, cài ad-hoc trong 1 npm project riêng ngoài repo, KHÔNG thêm vào `frontend/package.json` để không đổi dependency sản phẩm). Dùng để chạy 3 case NOT_RUN còn lại của WARN-N01.
+
+**Môi trường thật đang chạy** (không khởi động lại, tránh xung đột với phiên khác đang dùng cùng port): backend `localhost:3000` (NestJS, kết nối Postgres container `margin-trading-auth-postgres` thật) + frontend `localhost:5173` (vite dev), cả hai chạy từ main checkout cùng commit với HEAD của nhánh QA này (`cbd7d72`) nên phản ánh đúng code đã qua review/QA trước đó. Tạo 1 user thật qua `POST /api/auth/register` (CSRF token lấy qua `GET /api/auth/csrf-token`), đăng nhập qua UI thật (`LoginForm`) để lấy session cookie hợp lệ, cho phép Playwright xem được `NavSidebar` (route bảo vệ).
+
+Script verify (ad-hoc, không phải sản phẩm, giữ lại để tái dùng): `.qa-scripts/app-navigation-shell-browser-verify.js`.
+
+### (1) AC-006 — overlay mobile vs sidebar cố định desktop (CSS `@media`/Tailwind `md:` thật)
+- Viewport 375x667 (mobile): `<nav>` đóng ban đầu nằm off-screen (`boundingBox().x = -252`, class chứa `-translate-x-full`). Bấm nút toggle (`aria-label="Mở menu điều hướng"`) → overlay vào đúng vị trí on-screen (`x = 0`, class chứa `translate-x-0`). Chọn mục nav khác (`Kết nối Binance`) → điều hướng đúng URL và overlay tự đóng lại (class trở về `-translate-x-full`).
+- Viewport 1440x900 (desktop): `<nav>` cố định tại `x = 0`, `width = 224` (static, không phải overlay). Nút toggle mobile bị ẩn đúng (`md:hidden` hoạt động). Không có backdrop (`div.bg-black/50`) nào tồn tại trên DOM ở desktop.
+- Screenshot: `ac006-mobile-closed.png`, `ac006-mobile-open-overlay.png`, `ac006-desktop-static.png` (lưu local tại thư mục scratch của phiên QA này, không commit vào repo — tương tự cách các QA trước không commit output curl).
+- **Kết luận: PASS.**
+
+### (2) AC-009 — contrast NavSidebar/active-state (WCAG AA 4.5:1), cả 2 theme
+Đo bằng `page.evaluate(() => getComputedStyle(...))` thật trên link active (`a[aria-current="page"]`) sau khi set theme qua `localStorage.setItem('mtl-theme', ...)` + reload (đúng cơ chế `ThemeProvider` đọc `localStorage` lúc khởi tạo). Tính contrast ratio theo công thức WCAG (relative luminance sRGB).
+
+| Theme | Màu chữ | Màu nền | Contrast ratio | Ngưỡng AA | Kết quả |
+|---|---|---|---|---|---|
+| Dark | `rgb(250,250,250)` | `rgb(39,39,42)` | **14.27:1** | 4.5:1 | PASS |
+| Light | `rgb(26,29,33)` | `rgb(226,229,233)` | **13.38:1** | 4.5:1 | PASS |
+
+Cả 2 theme vượt xa ngưỡng AA (margin rất lớn), đúng với việc token `--color-text-primary`/`--color-border` ở cả 2 theme trong `src/index.css` đều được chọn với độ tương phản cao. Screenshot: `ac009-dark-active-state.png`, `ac009-light-active-state.png`.
+- **Kết luận: PASS.**
+
+### (3) So khớp bằng mắt với near.com (`.demo/home/home.png`, `.demo/home/account.png`)
+Chụp screenshot desktop full-page thật (`visual-desktop-full.png`, theme dark, 1440x900) và đối chiếu trực tiếp với 2 ảnh tham chiếu. Nhận xét định tính (không pixel-perfect):
+- Bố cục sidebar trái cố định, header phải căn phải (theme toggle + đăng xuất) — khớp.
+- Active-state là pill bo góc (`rounded-xl`), màu nền trung tính (`--color-border`) thay vì màu accent — đúng chủ ý "active-state pill trung tính" ghi trong design rev r2, khớp tinh thần near.com (near.com dùng nền xám nhạt cho mục "Home" đang chọn, không dùng màu nhấn).
+- Icon dạng line-style đơn giản (SVG outline) — cùng phong cách với near.com, dù bộ icon cụ thể khác nhau (không yêu cầu trùng icon, chỉ yêu cầu tinh thần near.com).
+- Grouping theo nhãn in hoa nhỏ, màu nhạt (`TÀI KHOẢN`, `KẾT NỐI SÀN`) — khớp pattern near.com không có nhãn nhóm hiển thị trong ảnh tham chiếu nhưng cùng visual weight/spacing.
+- Không phát hiện sai lệch đáng kể nào (không có defect).
+- **Kết luận: PASS (định tính).**
+
+### Kết luận WARN-N01
+Cả 3 phần NOT_RUN trước đây nay đều có evidence PASS bằng browser thật, không phát hiện defect. `features/app-navigation-shell/decision.json`: WARN-N01 chuyển **OPEN → RESOLVED**; đây là điều kiện chặn DONE duy nhất còn lại (đã rà soát lại toàn bộ blockers/open_questions/risks/conditions) → **stage QA → DONE**.
