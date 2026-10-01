@@ -34,7 +34,7 @@ export function RevokeConnectionButton({ connectionId, label, onRevoked }: Revok
   }
 
   return (
-    <div>
+    <div className="flex flex-col items-start gap-2">
       <Button variant="secondary" onClick={handleClick} disabled={revoking}>
         Xoá kết nối
       </Button>

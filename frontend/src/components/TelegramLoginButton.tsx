@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, telegramStart, telegramStatus } from '../api/authClient';
 import type { TelegramLoginRequestStatus } from '../api/types';
-import { Button, InlineStatus } from './common';
+import { alertClassName, Button, InlineStatus, statusClassName } from './common';
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -13,6 +13,10 @@ interface TelegramLoginButtonProps {
   // Test-only override for the poll interval so tests don't wait 2s per cycle.
   // Defaults to the real ~2s cadence from architecture/user-authentication.md.
   pollIntervalMs?: number;
+  // Full-width when used as a primary action inside LoginPage's narrow .card
+  // (matches the password form's full-width submit); auto-width when used
+  // inline inside AccountLinkPanel's wider panel (default).
+  fullWidth?: boolean;
 }
 
 type LocalPhase = 'idle' | 'starting' | 'waiting' | 'claimed' | 'rejected' | 'expired' | 'error';
@@ -24,6 +28,7 @@ export function TelegramLoginButton({
   label,
   onClaimed,
   pollIntervalMs = POLL_INTERVAL_MS,
+  fullWidth = false,
 }: TelegramLoginButtonProps) {
   const [phase, setPhase] = useState<LocalPhase>('idle');
   const [deepLinkUrl, setDeepLinkUrl] = useState<string | null>(null);
@@ -122,7 +127,7 @@ export function TelegramLoginButton({
 
   if (phase === 'idle' || phase === 'starting') {
     return (
-      <Button onClick={() => void handleStart()} disabled={phase === 'starting'}>
+      <Button onClick={() => void handleStart()} disabled={phase === 'starting'} className={fullWidth ? 'w-full' : undefined}>
         {label}
       </Button>
     );
@@ -130,7 +135,7 @@ export function TelegramLoginButton({
 
   if (phase === 'waiting') {
     return (
-      <div className="inline-message inline-message-status" role="status">
+      <div className={`${statusClassName} flex flex-col gap-1`} role="status">
         <p>Đang chờ xác nhận trên Telegram...</p>
         <p>Còn lại: {secondsLeft}s</p>
         {deepLinkUrl && code && <p>Nếu tab không tự mở, bấm lại nút để thử lại.</p>}
@@ -144,7 +149,7 @@ export function TelegramLoginButton({
 
   if (phase === 'rejected') {
     return (
-      <div className="inline-message inline-message-alert" role="alert">
+      <div className={`${alertClassName} flex flex-col items-start gap-2`} role="alert">
         <p>{rejectReason}</p>
         <Button variant="secondary" onClick={handleRetry}>
           Tạo mã mới
@@ -155,7 +160,7 @@ export function TelegramLoginButton({
 
   if (phase === 'expired') {
     return (
-      <div>
+      <div className="flex flex-col items-start gap-2">
         <p>Mã đã hết hạn.</p>
         <Button variant="secondary" onClick={handleRetry}>
           Tạo mã mới
@@ -166,7 +171,7 @@ export function TelegramLoginButton({
 
   // phase === 'error'
   return (
-    <div className="inline-message inline-message-alert" role="alert">
+    <div className={`${alertClassName} flex flex-col items-start gap-2`} role="alert">
       <p>Không thể kết nối tới máy chủ, vui lòng thử lại.</p>
       <Button variant="secondary" onClick={handleRetry}>
         Thử lại

@@ -40,3 +40,10 @@ Không có AC nào FAIL. AC-001/AC-005 chuyển từ PASS_WITH_WARNING (rev 1) s
 ## Đề xuất trạng thái
 **qa_status: PASS_WITH_WARNINGS**.
 Warning duy nhất còn lại: AC-002 PASS_WITH_WARNING vì AccountLinkPanel chưa được xác nhận trực quan (không ảnh hưởng correctness/security/financial invariant). Cần user: (1) xác nhận rev 2 đã đúng ý ("giống Hyperliquid" chưa) qua ảnh chụp coordinator/reviewer đã chụp hoặc tự chạy `npm run dev`, và (2) khi có backend thật, xem qua AccountLinkPanel một lần để đóng COND-002 trước khi feature DONE.
+
+## Cập nhật 2026-10-01 (rev 3 — Tailwind migration + near.com style)
+Chạy lại toàn bộ evidence (không chỉ tin review.md): `tsc -b` sạch, `vitest run` 25/25 pass, `npm run build` thành công, `npm run lint` không warning mới. Đối chiếu AC-001..006 (BR-001..004 của requirement rev 2): không có AC nào liên quan tới nội dung/hành vi bị ảnh hưởng (toàn bộ thay đổi là CSS/trình bày), nên PASS/PASS_WITH_WARNING trạng thái hiện có của từng AC giữ nguyên — không cần chấm lại từ đầu.
+
+**Điểm mới cần xác nhận (chưa từng có ở rev 1/2)**: toàn bộ palette màu đổi nhẹ (gần near.com hơn) và style mọi component đổi hoàn toàn sang Tailwind — phạm vi ảnh hưởng rộng hơn hẳn các lần sửa trước (vốn chỉ chỉnh layout 1-2 chỗ). Không có công cụ trình duyệt thật trong môi trường này để so khớp trực tiếp với `.demo/*.png` mà user cung cấp — đây là NOT_RUN cho riêng tiêu chí "giống near.com" (không phải AC chính thức trong requirement, mà là yêu cầu trực tiếp mới nhất của user), không phải FAIL.
+
+**qa_status: PASS_WITH_WARNINGS** (không đổi). Thêm COND-003 (owner: user, due_gate: DONE): user tự chạy `npm run dev`, so sánh bằng mắt với `.demo/home/*.png`/`.demo/login/*.png`, xác nhận đạt hoặc yêu cầu chỉnh thêm — bắt buộc trước khi coi feature DONE trở lại (đã DONE trước đó nhưng thay đổi diện rộng này cần user re-confirm, không chỉ dựa vào bugfix nhỏ như các lần trước).

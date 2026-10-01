@@ -39,17 +39,19 @@ export function BinanceConnectionsPage() {
     <div>
       <h2>Kết nối Binance</h2>
 
-      {connections === null && !error && <p>Đang tải danh sách kết nối...</p>}
+      {connections === null && !error && <p className="text-[var(--color-text-secondary)]">Đang tải danh sách kết nối...</p>}
       {error && (
-        <>
+        <div className="flex flex-col items-start gap-2">
           <InlineAlert>{error}</InlineAlert>
           <Button variant="secondary" onClick={load}>
             Thử lại
           </Button>
-        </>
+        </div>
       )}
 
-      {connections !== null && connections.length === 0 && <p>Bạn chưa có kết nối Binance nào.</p>}
+      {connections !== null && connections.length === 0 && (
+        <p className="text-[var(--color-text-secondary)]">Bạn chưa có kết nối Binance nào.</p>
+      )}
 
       <AddConnectionForm onCreated={handleCreated} />
 

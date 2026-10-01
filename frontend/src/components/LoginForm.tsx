@@ -37,13 +37,16 @@ export function LoginForm({ onLoggedIn }: LoginFormProps) {
     }
   }
 
+  const tabClassName =
+    'flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text-secondary)] aria-selected:border-[var(--color-accent)] aria-selected:bg-[var(--color-accent)] aria-selected:text-[var(--color-bg)]';
+
   return (
     <div>
-      <div className="tabs" role="tablist">
+      <div className="mb-4 flex gap-1" role="tablist">
         <button
           type="button"
           role="tab"
-          className="tab"
+          className={tabClassName}
           aria-selected={activeTab === 'password'}
           onClick={() => setActiveTab('password')}
         >
@@ -52,7 +55,7 @@ export function LoginForm({ onLoggedIn }: LoginFormProps) {
         <button
           type="button"
           role="tab"
-          className="tab"
+          className={tabClassName}
           aria-selected={activeTab === 'telegram'}
           onClick={() => setActiveTab('telegram')}
         >
@@ -77,14 +80,14 @@ export function LoginForm({ onLoggedIn }: LoginFormProps) {
             required
           />
           {error && <InlineAlert>{error}</InlineAlert>}
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting} className="mt-2 w-full">
             Đăng nhập
           </Button>
         </form>
       )}
 
       {activeTab === 'telegram' && (
-        <TelegramLoginButton label="Đăng nhập với Telegram" onClaimed={onLoggedIn} />
+        <TelegramLoginButton label="Đăng nhập với Telegram" onClaimed={onLoggedIn} fullWidth />
       )}
     </div>
   );

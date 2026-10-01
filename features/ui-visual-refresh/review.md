@@ -87,3 +87,10 @@ src/components/AccountLinkPanel.tsx:30:10: warning react(set-state-in-effect) ..
 2. AccountLinkPanel cần được user tự kiểm tra bằng mắt khi có backend thật để đăng nhập — chưa có ảnh chụp thật cho màn này ở bất kỳ revision nào.
 
 Không có finding nào yêu cầu quay lại IMPLEMENTATION.
+
+## Cập nhật 2026-10-01 (rev 3 — Tailwind migration + near.com style)
+Review độc lập trong cùng phiên vừa implement (không phải reviewer hoàn toàn tách biệt, ghi rõ theo đúng thông lệ các feature khác). Đọc lại diff: xác nhận không có logic nghiệp vụ nào bị đổi (chỉ `className`/CSS/2 file mới thuần trình bày: `navigation/icons.tsx`, `styles.ts`), API/props của mọi component common giữ nguyên (chỉ `TelegramLoginButton` thêm 1 prop optional `fullWidth`, không phải breaking change). Xác nhận cơ chế theme (`ThemeProvider`/`data-theme`/`localStorage`) không đổi — Tailwind chỉ là lớp trình bày mới tiêu thụ cùng token CSS var. Chạy lại `tsc -b`/`vitest run` (25/25)/`npm run lint`/`npm run build` — khớp implementation.md. Đọc trực tiếp CSS output xác nhận các arbitrary-value class (color-mix, aria-selected, not-disabled:hover, responsive translate) compile đúng, không bị Tailwind bỏ qua âm thầm.
+
+Không phát hiện finding chặn. Gap không đổi so với rev 2: vẫn không có browser tool thật để xác nhận trực quan khớp `.demo/*.png` — đây là phạm vi review cũ (COND-002 cũ, nay thêm COND-003 cho riêng yêu cầu near.com) không phải finding mới.
+
+**review_status: APPROVED**, gắn implementation revision 4 (decision.json counter).

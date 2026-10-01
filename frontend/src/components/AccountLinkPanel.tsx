@@ -57,7 +57,7 @@ export function AccountLinkPanel() {
   return (
     <div>
       <h2>Liên kết tài khoản</h2>
-      <ul>
+      <ul className="m-0 mb-4 flex list-none flex-col gap-1 p-0 text-sm text-[var(--color-text-secondary)]">
         <li>Email/Password: {status.hasLocalCredential ? 'Đã liên kết' : 'Chưa liên kết'}</li>
         <li>Telegram: {status.hasTelegramIdentity ? 'Đã liên kết' : 'Chưa liên kết'}</li>
       </ul>
@@ -67,7 +67,7 @@ export function AccountLinkPanel() {
       )}
 
       {!status.hasLocalCredential && (
-        <form onSubmit={handleLinkLocalSubmit}>
+        <form onSubmit={handleLinkLocalSubmit} className="mt-4">
           <TextField
             label="Email"
             type="email"
@@ -85,7 +85,9 @@ export function AccountLinkPanel() {
           />
           {linkLocalError && <InlineAlert>{linkLocalError}</InlineAlert>}
           {linkLocalSuccess && <InlineStatus>Đã thêm email + password.</InlineStatus>}
-          <Button type="submit">Thêm email + password</Button>
+          <Button type="submit" className="mt-2">
+            Thêm email + password
+          </Button>
         </form>
       )}
     </div>

@@ -47,8 +47,10 @@ export function AccountSnapshotPanel({ connectionId }: AccountSnapshotPanelProps
     );
   }
 
+  const cellClassName = 'border-b border-[var(--color-border)] px-2 py-1 text-left text-xs';
+
   return (
-    <div>
+    <div className="flex flex-col items-start gap-2">
       {loading && <InlineStatus>Đang tải dữ liệu từ Binance...</InlineStatus>}
       {error && (
         <>
@@ -60,29 +62,39 @@ export function AccountSnapshotPanel({ connectionId }: AccountSnapshotPanelProps
       )}
       {snapshot && (
         <>
-          <table>
+          <table className="my-2 w-full border-collapse font-[var(--font-mono)]">
             <thead>
               <tr>
-                <th scope="col">Asset</th>
-                <th scope="col">Borrowed</th>
-                <th scope="col">Free</th>
-                <th scope="col">Interest</th>
-                <th scope="col">Net Asset</th>
+                <th scope="col" className={cellClassName}>
+                  Asset
+                </th>
+                <th scope="col" className={cellClassName}>
+                  Borrowed
+                </th>
+                <th scope="col" className={cellClassName}>
+                  Free
+                </th>
+                <th scope="col" className={cellClassName}>
+                  Interest
+                </th>
+                <th scope="col" className={cellClassName}>
+                  Net Asset
+                </th>
               </tr>
             </thead>
             <tbody>
               {snapshot.userAssets.map((asset) => (
                 <tr key={asset.asset}>
-                  <td>{asset.asset}</td>
-                  <td>{asset.borrowed ?? '—'}</td>
-                  <td>{asset.free ?? '—'}</td>
-                  <td>{asset.interest ?? '—'}</td>
-                  <td>{asset.netAsset ?? '—'}</td>
+                  <td className={cellClassName}>{asset.asset}</td>
+                  <td className={cellClassName}>{asset.borrowed ?? '—'}</td>
+                  <td className={cellClassName}>{asset.free ?? '—'}</td>
+                  <td className={cellClassName}>{asset.interest ?? '—'}</td>
+                  <td className={cellClassName}>{asset.netAsset ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p>Dữ liệu tại {formatFetchedAt(snapshot.fetchedAt)}</p>
+          <p className="text-xs text-[var(--color-text-secondary)]">Dữ liệu tại {formatFetchedAt(snapshot.fetchedAt)}</p>
           <Button variant="secondary" onClick={load} disabled={loading}>
             Làm mới
           </Button>
