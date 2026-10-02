@@ -1,6 +1,7 @@
 import { createBrowserRouter, redirect, type RouteObject } from 'react-router';
 import { AppShell } from '../components/layout/AppShell';
 import { BinanceConnectionsPage } from '../components/binance/BinanceConnectionsPage';
+import { CapitalProvenanceLedgerPage } from '../components/ledger/CapitalProvenanceLedgerPage';
 import { AccountPage } from '../pages/AccountPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -25,6 +26,14 @@ export const routeConfig: RouteObject[] = [
         element: (
           <section className={panelClassName}>
             <BinanceConnectionsPage />
+          </section>
+        ),
+      },
+      {
+        path: 'ledger',
+        element: (
+          <section className={panelClassName}>
+            <CapitalProvenanceLedgerPage />
           </section>
         ),
       },

@@ -20,6 +20,10 @@ Quy ước:
 | TelegramLoginRequest | IMPLEMENTED | user-authentication | Phiên đăng nhập/liên kết Telegram đang chờ, khớp bởi bot khi user gửi `/start <code>` (deep-link), ephemeral | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
 | Session | IMPLEMENTED | user-authentication | Session store cho `express-session` (custom `PrismaSessionStore`), ephemeral, không phải audit trail | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
 | AuthAuditLog | IMPLEMENTED | user-authentication | Audit log redacted cho register/login/logout/link-account | sha256:6a4f01e3fbade29bbe3471d08d9ac48db553056eb58d497d8dc5efed4344b45b |
+| BorrowPosition | IMPLEMENTED | capital-provenance-ledger | Khoản vay nội bộ: asset, quantity, first_borrow_entry_price immutable, liability, reserved proceeds, trạng thái OPEN/REPAID/DRIFT_DETECTED | sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2 |
+| AllocationLot | IMPLEMENTED | capital-provenance-ledger | Lot BTC/ETH mua từ 1 nguồn vốn duy nhất (personal hoặc 1 Borrow Position), theo dõi remaining quantity khi bán một phần | sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2 |
+| LedgerEvent | IMPLEMENTED | capital-provenance-ledger | Append-only event (borrow/sell/buy/lot-sold/repay/correction/dust-written-off), idempotency key per user | sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2 |
+| PersonalCapitalDeclaration | IMPLEMENTED | capital-provenance-ledger | Vốn cá nhân user tự khai báo (USDT), 1 dòng/user — deviation phát hiện khi implementation | sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2 |
 
 Ghi chú: `BinanceConnection.userId` (string) là FK logic tới `User.id` (uuid) của feature `user-authentication` — đã xác nhận khớp kiểu khi `architecture/user-authentication.md` đạt READY (2026-09-29). Không thay đổi nội dung/revision của `architecture/binance-read-only-connection.md` vì contract `req.user.id`/cookie session/CSRF không đổi so với giả định ban đầu (BLOCKER-ARCH-001), chỉ có ghi chú tài liệu này được cập nhật.
 
@@ -185,6 +189,89 @@ Phụ thuộc bởi: (chưa có feature nào khác)
 Quan hệ: `userId` liên kết logic tới User (không FK cứng — giữ log kể cả nếu user bị xoá trong tương lai, dù xoá user chưa nằm trong scope MVP).
 Index/constraint quan trọng: index theo `userId`. Append-only — không update/delete.
 Lịch sử thay đổi: 2026-09-29 — thiết kế lần đầu tại architecture/user-authentication.md. 2026-09-29 — cập nhật danh sách `action` cho cơ chế Telegram bot deep-link (thay LOGIN_TELEGRAM_SUCCESS/FAILED bằng TELEGRAM_LOGIN_REQUEST_CREATED/CONFIRMED/CLAIMED/EXPIRED/TELEGRAM_WEBHOOK_REJECTED), cùng revision architecture mới. 2026-09-29 — migration `20260929000000_init` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
+
+### BorrowPosition
+Trạng thái: IMPLEMENTED
+Owner feature: capital-provenance-ledger (architecture/capital-provenance-ledger.md revision: sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2)
+Phụ thuộc bởi: AllocationLot, LedgerEvent (cùng feature)
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | uuid | PK |
+| userId | string (uuid) | FK logic → User.id (feature user-authentication) |
+| borrowedAsset | string | free-form (vd. "ZEC", "WLD"), không enum vì danh sách mở |
+| quantity | Decimal(36,18) | |
+| firstBorrowEntryPrice | Decimal(36,18) | immutable — không có endpoint update |
+| liabilityLedger | Decimal(36,18) | principal+interest theo ledger nội bộ, đơn vị borrowedAsset |
+| liabilityBinanceLast | Decimal(36,18)? | snapshot lần reconcile gần nhất, chỉ hiển thị/so sánh |
+| reservedAmountUsdt | Decimal(36,2) | mặc định 0 |
+| status | enum BorrowPositionStatus | OPEN \| REPAID \| DRIFT_DETECTED |
+| version | int | optimistic lock, mặc định 0 |
+| createdAt / updatedAt / repaidAt | datetime | |
+
+Quan hệ: `userId` → User (feature user-authentication). `AllocationLot.fundingBorrowPositionId` → BorrowPosition (optional).
+Index/constraint quan trọng: index theo `userId`, `(userId, borrowedAsset)`; **partial unique index** `(userId, borrowedAsset) WHERE status = 'OPEN'` (BR-002, tối đa 1 position OPEN/asset/user) — thêm bằng migration SQL thủ công vì Prisma schema không khai báo được WHERE clause.
+Lịch sử thay đổi: 2026-10-01 — thiết kế lần đầu tại architecture/capital-provenance-ledger.md. 2026-10-01 — migration `20261001062909_capital_provenance_ledger` áp dụng thật lên Postgres (`prisma migrate dev`), chuyển PLANNED → IMPLEMENTED.
+
+### AllocationLot
+Trạng thái: IMPLEMENTED
+Owner feature: capital-provenance-ledger (architecture/capital-provenance-ledger.md revision: sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2)
+Phụ thuộc bởi: (chưa có feature nào khác)
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | uuid | PK |
+| userId | string (uuid) | |
+| asset | enum AllocationAsset | BTC \| ETH — enum tự chặn SOL ở tầng DB |
+| quantity | Decimal(36,18) | quantity gốc khi mua |
+| remainingQuantity | Decimal(36,18) | giảm dần khi LOT_SOLD |
+| costBasisUsdt | Decimal(36,2) | |
+| fundingSource | enum AllocationFundingSource | PERSONAL \| BORROW |
+| fundingBorrowPositionId | string? | bắt buộc non-null khi fundingSource=BORROW (app-level check) |
+| version | int | optimistic lock |
+| createdAt / updatedAt | datetime | |
+
+Quan hệ: `fundingBorrowPositionId` → BorrowPosition (optional).
+Index/constraint quan trọng: index theo `userId`, `fundingBorrowPositionId`.
+Lịch sử thay đổi: 2026-10-01 — thiết kế lần đầu tại architecture/capital-provenance-ledger.md. 2026-10-01 — migration `20261001062909_capital_provenance_ledger` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
+
+### LedgerEvent
+Trạng thái: IMPLEMENTED
+Owner feature: capital-provenance-ledger (architecture/capital-provenance-ledger.md revision: sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2)
+Phụ thuộc bởi: (chưa có feature nào khác)
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | uuid | PK |
+| userId | string (uuid) | |
+| type | enum LedgerEventType | BORROW_OPENED \| ASSET_SOLD \| ASSET_BOUGHT \| LOT_SOLD \| REPAY \| CORRECTION \| DUST_WRITTEN_OFF |
+| borrowPositionId | string? | |
+| allocationLotId | string? | |
+| payload | json | số liệu gốc user nhập, đơn vị ghi rõ trong payload |
+| correctsEventId | string? | non-null khi type=CORRECTION, tự tham chiếu LedgerEvent khác |
+| idempotencyKey | string | client-generated UUID, chống double-submit (COND-002) |
+| createdAt | datetime | |
+
+Quan hệ: không FK cứng tới BorrowPosition/AllocationLot (giữ lại nếu entity gốc có thay đổi khác trong tương lai), liên kết logic qua id.
+Index/constraint quan trọng: unique(`userId`, `idempotencyKey`); index theo `userId`, `borrowPositionId`, `allocationLotId`. Append-only — không update/delete.
+Lịch sử thay đổi: 2026-10-01 — thiết kế lần đầu tại architecture/capital-provenance-ledger.md. 2026-10-01 — migration `20261001062909_capital_provenance_ledger` áp dụng thật lên Postgres, chuyển PLANNED → IMPLEMENTED.
+
+### PersonalCapitalDeclaration
+Trạng thái: IMPLEMENTED
+Owner feature: capital-provenance-ledger (architecture/capital-provenance-ledger.md revision: sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2)
+Phụ thuộc bởi: (chưa có feature nào khác)
+
+**Deviation phát hiện khi implementation (không phải thay đổi chính sách nghiệp vụ)**: architecture.md mục "Financial formulas" tham chiếu `personalCapitalUsdt` (user tự khai báo, không suy từ balance Binance) nhưng không có bảng lưu trữ. Bảng này là nơi lưu tối thiểu, 1 dòng/user, cùng tinh thần với deviation `encryptionIvApiSecret` ở `BinanceConnection` — không đổi revision architecture.md vì đây là chi tiết storage, không phải AC/behavior/business-rule mới.
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| userId | string (uuid) | PK, 1 dòng/user |
+| amountUsdt | Decimal(36,2) | mặc định 0, user tự cập nhật qua `PUT /api/ledger/personal-capital` |
+| updatedAt | datetime | |
+
+Quan hệ: `userId` → User (feature user-authentication), không FK cứng (giống pattern BinanceConnection).
+Index/constraint quan trọng: PK = userId (đảm bảo tối đa 1 dòng/user).
+Lịch sử thay đổi: 2026-10-01 — phát hiện gap khi implementation (features/capital-provenance-ledger/implementation.md), migration `20261001063024_capital_provenance_ledger_personal_capital` áp dụng thật lên Postgres.
 
 ### Mẫu (copy khi thêm bảng mới)
 ```

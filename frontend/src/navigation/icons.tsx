@@ -38,3 +38,14 @@ export function ConnectionIcon(props: SVGProps<SVGSVGElement>) {
     </IconBase>
   );
 }
+
+export function LedgerIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconBase {...props}>
+      <rect x="5" y="4" width="14" height="16" rx="1.5" />
+      <path d="M8.5 8.5h7" />
+      <path d="M8.5 12h7" />
+      <path d="M8.5 15.5h4" />
+    </IconBase>
+  );
+}

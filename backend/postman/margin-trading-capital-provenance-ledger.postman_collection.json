@@ -1,0 +1,304 @@
+{
+  "info": {
+    "name": "Margin Trading — capital-provenance-ledger",
+    "description": "Postman collection cho API của feature capital-provenance-ledger (Borrow Position / Allocation Lot / sự kiện ledger / correction / available capital). Sinh thủ công khớp với Swagger doc tại GET /api/docs-json — cập nhật cả hai khi API contract đổi. Mọi endpoint yêu cầu session đã đăng nhập (feature user-authentication) — chạy request 'Setup: register a session' trước. Mọi POST/PUT ghi event bắt buộc header Idempotency-Key — collection dùng {{$guid}} (Postman dynamic variable) để mỗi lần Send sinh 1 UUID mới; để test idempotency, gửi lại cùng request mà không đổi header (copy giá trị đã dùng vào biến idempotencyKey thủ công).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "csrfToken", "value": "" },
+    { "key": "setupEmail", "value": "postman-ledger-test@example.com" },
+    { "key": "borrowPositionId", "value": "" },
+    { "key": "allocationLotId", "value": "" },
+    { "key": "ledgerEventId", "value": "" },
+    { "key": "lastIdempotencyKey", "value": "", "description": "Set thủ công = key đã dùng ở 1 request trước đó để test idempotency replay (COND-002); để trống khi chạy tự động." }
+  ],
+  "item": [
+    {
+      "name": "Setup: register a session",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{setupEmail}}\",\n  \"password\": \"a-strong-password\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+        "description": "Chạy 1 lần trước khi test các request ledger bên dưới, để có session đã đăng nhập (req.user.id). 200 = tạo mới + đăng nhập. 409 = email đã tồn tại — chạy 'Setup: login' thay thế."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup: login (if already registered)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{setupEmail}}\",\n  \"password\": \"a-strong-password\"\n}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Borrow Positions",
+      "item": [
+        {
+          "name": "Create borrow position (BR-002, AC-001)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"borrowedAsset\": \"ZEC\",\n  \"quantity\": \"25.1\",\n  \"firstBorrowEntryPrice\": \"420\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/borrow-positions", "host": ["{{baseUrl}}"], "path": ["ledger", "borrow-positions"] },
+            "description": "201 = position OPEN tạo thành công. 409 = đã có position OPEN cùng borrowedAsset (BR-002) — phải repay xong trước."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] }
+            },
+            {
+              "listen": "test",
+              "script": { "exec": ["const body = pm.response.json();", "if (body.id) { pm.collectionVariables.set('borrowPositionId', body.id); }"] }
+            }
+          ]
+        },
+        {
+          "name": "List borrow positions",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ledger/borrow-positions?status=OPEN", "host": ["{{baseUrl}}"], "path": ["ledger", "borrow-positions"], "query": [{ "key": "status", "value": "OPEN" }] },
+            "description": "200 = danh sách Borrow Position của session hiện tại. Query status tuỳ chọn (OPEN|REPAID|DRIFT_DETECTED)."
+          }
+        },
+        {
+          "name": "Get borrow position by id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ledger/borrow-positions/{{borrowPositionId}}", "host": ["{{baseUrl}}"], "path": ["ledger", "borrow-positions", "{{borrowPositionId}}"] },
+            "description": "200 = chi tiết. 404 = không tồn tại hoặc không thuộc session hiện tại (chống IDOR)."
+          }
+        },
+        {
+          "name": "Sell borrowed asset (ASSET_SOLD)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantitySold\": \"25.1\",\n  \"proceedsUsdt\": \"10542.00\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/borrow-positions/{{borrowPositionId}}/sell-asset", "host": ["{{baseUrl}}"], "path": ["ledger", "borrow-positions", "{{borrowPositionId}}", "sell-asset"] },
+            "description": "200 = event ASSET_SOLD ghi nhận. 409 = position đang DRIFT_DETECTED hoặc đã REPAID."
+          },
+          "event": [{ "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } }]
+        },
+        {
+          "name": "Sell borrowed asset (ASSET_SOLD) — idempotency replay (same key, COND-002)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{lastIdempotencyKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantitySold\": \"999\",\n  \"proceedsUsdt\": \"999\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/borrow-positions/{{borrowPositionId}}/sell-asset", "host": ["{{baseUrl}}"], "path": ["ledger", "borrow-positions", "{{borrowPositionId}}", "sell-asset"] },
+            "description": "Set biến collection lastIdempotencyKey = key dùng ở request 'Sell borrowed asset' phía trên trước khi chạy request này thủ công, để xác nhận COND-002: dù body khác hẳn, request KHÔNG tạo event mới (không phải lỗi, chỉ là no-op trả lại state hiện tại). Bỏ qua khi chạy tự động (lastIdempotencyKey rỗng → 400 thiếu header, cũng là hành vi đúng)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Allocation Lots",
+      "item": [
+        {
+          "name": "Create allocation lot — funded by Borrow Position (BR-003, AC-003)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"asset\": \"BTC\",\n  \"quantity\": \"0.15\",\n  \"costBasisUsdt\": \"6000.00\",\n  \"fundingSource\": \"BORROW\",\n  \"fundingBorrowPositionId\": \"{{borrowPositionId}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/allocation-lots", "host": ["{{baseUrl}}"], "path": ["ledger", "allocation-lots"] },
+            "description": "201 = lot tạo thành công, fundingBorrowPositionId phải trỏ tới 1 Borrow Position OPEN của chính session. 422 = thiếu fundingBorrowPositionId khi fundingSource=BORROW, hoặc position nguồn không OPEN, hoặc mixed-source (BR-003/AC-004)."
+          },
+          "event": [
+            { "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } },
+            { "listen": "test", "script": { "exec": ["const body = pm.response.json();", "if (body.id) { pm.collectionVariables.set('allocationLotId', body.id); }"] } }
+          ]
+        },
+        {
+          "name": "Create allocation lot — funded personally",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"asset\": \"ETH\",\n  \"quantity\": \"1.2\",\n  \"costBasisUsdt\": \"2500.00\",\n  \"fundingSource\": \"PERSONAL\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/allocation-lots", "host": ["{{baseUrl}}"], "path": ["ledger", "allocation-lots"] }
+          },
+          "event": [{ "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } }]
+        },
+        {
+          "name": "List allocation lots",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ledger/allocation-lots?fundingBorrowPositionId={{borrowPositionId}}", "host": ["{{baseUrl}}"], "path": ["ledger", "allocation-lots"], "query": [{ "key": "fundingBorrowPositionId", "value": "{{borrowPositionId}}" }] }
+          }
+        },
+        {
+          "name": "Sell lot (BR-005, AC-005)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantitySold\": \"0.075\",\n  \"proceedsUsdt\": \"3500.00\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/allocation-lots/{{allocationLotId}}/sell", "host": ["{{baseUrl}}"], "path": ["ledger", "allocation-lots", "{{allocationLotId}}", "sell"] },
+            "description": "200 = remainingQuantity giảm; nếu lot funded từ Borrow Position, 100% proceeds cộng vào reservedAmountUsdt của position đó (BR-005). 422 = quantitySold > remainingQuantity. 409 = position nguồn đang DRIFT_DETECTED (BR-009)."
+          },
+          "event": [{ "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Repay & reconcile",
+      "item": [
+        {
+          "name": "Reconcile with Binance (AC-007)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "x-csrf-token", "value": "{{csrfToken}}" }],
+            "url": { "raw": "{{baseUrl}}/ledger/borrow-positions/{{borrowPositionId}}/reconcile", "host": ["{{baseUrl}}"], "path": ["ledger", "borrow-positions", "{{borrowPositionId}}", "reconcile"] },
+            "description": "200 với status MATCHED | DRIFT_DETECTED | RECONCILE_UNKNOWN (timeout/lỗi/no verified connection — trạng thái position KHÔNG đổi trong trường hợp này). Cần đã có 1 Binance connection VERIFIED (feature binance-read-only-connection) cho session hiện tại. Chạy TRƯỚC repay cố ý: xác nhận reconcile không bị ảnh hưởng bởi reservedAmountUsdt vừa cộng ở bước Sell lot."
+          },
+          "event": [{ "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } }]
+        },
+        {
+          "name": "Repay — overpayment rejected (COND-004/OQ-P05)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": \"999\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/borrow-positions/{{borrowPositionId}}/repay", "host": ["{{baseUrl}}"], "path": ["ledger", "borrow-positions", "{{borrowPositionId}}", "repay"] },
+            "description": "422 kỳ vọng — amount vượt quá liability hiện tại (25.1). Xác nhận hệ thống từ chối thay vì tự động clamp (OQ-P05)."
+          },
+          "event": [{ "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } }]
+        },
+        {
+          "name": "Repay — full payoff (BR-006, AC-006, AC-011)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": \"25.1\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/borrow-positions/{{borrowPositionId}}/repay", "host": ["{{baseUrl}}"], "path": ["ledger", "borrow-positions", "{{borrowPositionId}}", "repay"] },
+            "description": "200 kỳ vọng — status chuyển REPAID, reservedAmountUsdt về 0 (giải phóng, BR-006)."
+          },
+          "event": [{ "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Events & corrections",
+      "item": [
+        {
+          "name": "List events for a borrow position",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ledger/events?borrowPositionId={{borrowPositionId}}", "host": ["{{baseUrl}}"], "path": ["ledger", "events"], "query": [{ "key": "borrowPositionId", "value": "{{borrowPositionId}}" }] },
+            "description": "200 = lịch sử append-only, sắp theo createdAt tăng dần. Tự động set biến ledgerEventId = event đầu tiên (BORROW_OPENED) để chạy automated (newman); chọn id khác thủ công nếu muốn test Correction trên event khác."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["const body = pm.response.json();", "if (Array.isArray(body) && body.length > 0) { pm.collectionVariables.set('ledgerEventId', body[0].id); }"] }
+            }
+          ]
+        },
+        {
+          "name": "Create correction (AC-008, COND-004/OQ-P05)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Sửa lại proceedsUsdt do nhập nhầm khi test qua Postman\",\n  \"borrowPositionId\": \"{{borrowPositionId}}\",\n  \"newReservedAmountUsdt\": \"3500.00\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/events/{{ledgerEventId}}/correct", "host": ["{{baseUrl}}"], "path": ["ledger", "events", "{{ledgerEventId}}", "correct"] },
+            "description": "200 = tạo LedgerEvent type=CORRECTION mới (event gốc không bị sửa/xoá). Nếu borrowPositionId đang DRIFT_DETECTED, correction cũng là cách duy nhất để chuyển về OPEN (dùng kèm hoặc không kèm newLiabilityLedger/newReservedAmountUsdt tuỳ nhu cầu)."
+          },
+          "event": [{ "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Available capital",
+      "item": [
+        {
+          "name": "Get available capital (BR-010)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/ledger/available-capital", "host": ["{{baseUrl}}"], "path": ["ledger", "available-capital"] },
+            "description": "200 = { personalCapitalUsdt, totalReservedUsdt, freeCapitalUsdt, asOf }. Không cache."
+          }
+        },
+        {
+          "name": "Update personal capital declaration",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"amountUsdt\": \"20000.00\"\n}" },
+            "url": { "raw": "{{baseUrl}}/ledger/personal-capital", "host": ["{{baseUrl}}"], "path": ["ledger", "personal-capital"] },
+            "description": "200 = cập nhật vốn cá nhân user tự khai báo. Không suy từ balance Binance."
+          },
+          "event": [{ "listen": "prerequest", "script": { "exec": ["const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };", "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"] } }]
+        }
+      ]
+    }
+  ]
+}

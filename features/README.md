@@ -13,8 +13,12 @@ Bảng dưới xếp feature theo thứ tự nên làm dựa trên phụ thuộc
 | # | Feature | Stage hiện tại | Phụ thuộc vào | Lý do |
 |---|---|---|---|---|
 | 1 | `ui-visual-refresh` | DONE | — | Không đụng backend/execution, không có dependency (requirements/ui-visual-refresh.md). |
-| 2 | `user-authentication` | IMPLEMENTATION | — | Prerequisite bắt buộc cho mọi module per-user (`req.user.id`, session, CSRF) mà `binance-read-only-connection` và các module downstream trong docs/DOMAIN.md cần (requirements/user-authentication.md). |
-| 3 | `binance-read-only-connection` | ARCHITECTURE (BLOCKED tại IMPLEMENTATION) | `user-authentication` | Architecture đã READY nhưng giả định sẵn `req.user.id`/session/CSRF do `user-authentication` định nghĩa; implementation không thể bắt đầu trước feature #2 (requirements/user-authentication.md, requirements/binance-read-only-connection.md). |
+| 2 | `user-authentication` | QA (PASS_WITH_WARNINGS) | — | Prerequisite bắt buộc cho mọi module per-user (`req.user.id`, session, CSRF) mà `binance-read-only-connection` và các module downstream trong docs/DOMAIN.md cần (requirements/user-authentication.md). |
+| 3 | `binance-read-only-connection` | QA (PASS_WITH_WARNINGS) | `user-authentication` | Dùng sẵn `req.user.id`/session/CSRF do `user-authentication` định nghĩa; BLOCKER-ARCH-001 đã RESOLVED sau khi `user-authentication` đạt implementation READY/review APPROVED (requirements/user-authentication.md, requirements/binance-read-only-connection.md). |
+| 4 | `app-navigation-shell` | QA (PASS_WITH_WARNINGS) | `user-authentication` | Sidebar nav + client-side routing cho app đã có auth (requirements/app-navigation-shell.md). |
+| 5 | `capital-provenance-ledger` | QA (PASS_WITH_WARNINGS) | `user-authentication`, `binance-read-only-connection` | Cần ownership per-user (auth) và dữ liệu liability/borrowed asset đọc từ Binance để đối chiếu (reconciliation); là nền cho Risk Engine/Profit & Repay Calculator theo docs/DOMAIN.md (requirements/capital-provenance-ledger.md). |
+
+Ghi chú: 3 feature #2-#4 đang ở QA với warning chưa đóng (xem qa/<feature>.md), chưa chuyển DONE; điều này không chặn bắt đầu requirement/BA của feature #5 vì không có blocker ảnh hưởng ownership/dữ liệu mà #5 cần (xem decision.json từng feature).
 
 ## Quy ước contract
 - stage: IDEA | REQUIREMENT | BA_FEASIBILITY | ARCHITECTURE | IMPLEMENTATION | CODE_REVIEW | QA | DONE.
