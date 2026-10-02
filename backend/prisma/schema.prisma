@@ -147,3 +147,103 @@ model ConnectionAuditLog {
   @@index([userId])
   @@index([connectionId])
 }
+
+// Prisma schema addition for feature `capital-provenance-ledger`.
+// Source of truth: architecture/capital-provenance-ledger.md
+// (sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2)
+// Do not add/remove fields beyond what that document specifies.
+model BorrowPosition {
+  id                    String               @id @default(uuid())
+  userId                String // from AuthGuard's req.user.id, never from client body
+  borrowedAsset         String // free-form (e.g. "ZEC", "WLD") — not an enum, open-ended list
+  quantity              Decimal              @db.Decimal(36, 18)
+  firstBorrowEntryPrice Decimal              @db.Decimal(36, 18) // immutable — no update endpoint exists for this field
+  liabilityLedger       Decimal              @db.Decimal(36, 18) // principal+interest per ledger, units = borrowedAsset
+  liabilityBinanceLast  Decimal?             @db.Decimal(36, 18) // snapshot from last reconcile, display/compare only
+  reservedAmountUsdt    Decimal              @default(0) @db.Decimal(36, 2)
+  status                BorrowPositionStatus @default(OPEN)
+  version               Int                  @default(0) // optimistic lock (COND-003)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  repaidAt              DateTime?
+
+  allocationLots AllocationLot[]
+
+  @@index([userId])
+  @@index([userId, borrowedAsset])
+}
+
+enum BorrowPositionStatus {
+  OPEN
+  REPAID
+  DRIFT_DETECTED
+}
+
+enum AllocationAsset {
+  BTC
+  ETH
+}
+
+enum AllocationFundingSource {
+  PERSONAL
+  BORROW
+}
+
+model AllocationLot {
+  id                      String                  @id @default(uuid())
+  userId                  String
+  asset                   AllocationAsset // BTC | ETH only — enum itself rejects SOL at the DB level (AC-009)
+  quantity                Decimal                 @db.Decimal(36, 18) // original quantity at purchase
+  remainingQuantity       Decimal                 @db.Decimal(36, 18) // decreases on LOT_SOLD
+  costBasisUsdt           Decimal                 @db.Decimal(36, 2)
+  fundingSource           AllocationFundingSource
+  fundingBorrowPositionId String? // required non-null when fundingSource=BORROW (app-level check, BR-003)
+  fundingBorrowPosition   BorrowPosition?         @relation(fields: [fundingBorrowPositionId], references: [id])
+  version                 Int                     @default(0) // optimistic lock (COND-003)
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  @@index([userId])
+  @@index([fundingBorrowPositionId])
+}
+
+enum LedgerEventType {
+  BORROW_OPENED
+  ASSET_SOLD
+  ASSET_BOUGHT
+  LOT_SOLD
+  REPAY
+  CORRECTION
+  DUST_WRITTEN_OFF
+}
+
+// Deviation from architecture/capital-provenance-ledger.md (discovered during
+// implementation, not a business-policy change): the architecture's
+// "Financial formulas" section references a user-declared `personalCapitalUsdt`
+// input for the available-capital formula but never specified where it is
+// stored. A dedicated single-row-per-user table is the minimal storage for
+// that — same spirit as the encryptionIvApiSecret fix in BinanceConnection
+// (docs/DATABASE.md records this; architecture.md revision unchanged since
+// this is a storage detail, not an AC/behavior/business-rule change).
+model PersonalCapitalDeclaration {
+  userId     String   @id
+  amountUsdt Decimal  @default(0) @db.Decimal(36, 2)
+  updatedAt  DateTime @updatedAt
+}
+
+model LedgerEvent {
+  id               String          @id @default(uuid())
+  userId           String
+  type             LedgerEventType
+  borrowPositionId String?
+  allocationLotId  String?
+  payload          Json // raw figures the user entered, units documented in payload keys
+  correctsEventId  String? // non-null when type=CORRECTION, self-references another LedgerEvent
+  idempotencyKey   String // client-generated UUID, guards against double-submit (COND-002)
+  createdAt        DateTime        @default(now())
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId])
+  @@index([borrowPositionId])
+  @@index([allocationLotId])
+}

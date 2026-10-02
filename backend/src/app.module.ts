@@ -10,6 +10,7 @@ import { AccountLinkModule } from './account-link/account-link.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { BinanceConnectionModule } from './binance-connection/binance-connection.module';
+import { LedgerModule } from './ledger/ledger.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { BinanceConnectionModule } from './binance-connection/binance-connection
     AccountLinkModule,
     AuthModule,
     BinanceConnectionModule,
+    LedgerModule,
   ],
 })
 export class AppModule {}

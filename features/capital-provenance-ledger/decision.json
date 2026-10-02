@@ -1,0 +1,234 @@
+{
+  "feature": "capital-provenance-ledger",
+  "contract_version": 1,
+  "owner": "coordinator",
+  "updated_at": "2026-10-02T02:45:00Z",
+  "stage": "QA",
+  "requirement_status": "READY",
+  "ba_status": "APPROVED_WITH_CONDITIONS",
+  "architecture_status": "READY",
+  "design_status": "READY",
+  "implementation_status": "READY",
+  "review_status": "APPROVED",
+  "qa_status": "PASS_WITH_WARNINGS",
+  "implementation_authorized": true,
+  "implementation_authorization_evidence": "User xác nhận 'ok' ở turn 2026-10-01 sau khi được hỏi (1) giữ ngưỡng dust/drift mặc định 0 (COND-001b/OQ-C01) hay chốt giá trị khác, và (2) có muốn bắt đầu IMPLEMENTATION ngay sau khi chốt. 'ok' được coi là chấp nhận cả hai theo đúng phương án đề xuất (giữ mặc định 0) — cùng pattern đã dùng ở features/ui-visual-refresh/decision.json.",
+  "implementation_revision": "sha256:21818a63177d9dbc28e0b0ed2faf6c10701e7f6ad1fac96ee2a8ce89753c241a",
+  "reviewed_revision": "sha256:21818a63177d9dbc28e0b0ed2faf6c10701e7f6ad1fac96ee2a8ce89753c241a",
+  "qa_revision": "sha256:1b541e469deca6058db9bf4ce96d725ef935c55f4488bb12f15074ec81a03360",
+  "artifacts": {
+    "requirement": {
+      "path": "requirements/capital-provenance-ledger.md",
+      "revision": "sha256:429b97a572705c75a7570e44054961ab5b8841cd554bc884e8e64760c07db5e6"
+    },
+    "ba": {
+      "path": "analysis/capital-provenance-ledger-feasibility.md",
+      "revision": "sha256:7d0ee4a50751a9a0ef4453b7a048039404c4bab3f18e99ed0e99264750d224d2"
+    },
+    "architecture": {
+      "path": "architecture/capital-provenance-ledger.md",
+      "revision": "sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2"
+    },
+    "design": {
+      "path": "design/capital-provenance-ledger.md",
+      "revision": "sha256:5f8dda64c3c5006fd13db6f784b13bc0f8fa70a9ca4c0e0d810a73c164586f8f"
+    },
+    "implementation": {
+      "path": "features/capital-provenance-ledger/implementation.md",
+      "revision": "sha256:21818a63177d9dbc28e0b0ed2faf6c10701e7f6ad1fac96ee2a8ce89753c241a"
+    },
+    "review": {
+      "path": "features/capital-provenance-ledger/review.md",
+      "revision": "sha256:6b5e678a2aca32ec2bbe186680290ed5eb8dc6caed57550f53be0b8e5e14f4b3"
+    },
+    "qa": {
+      "path": "qa/capital-provenance-ledger.md",
+      "revision": "sha256:1b541e469deca6058db9bf4ce96d725ef935c55f4488bb12f15074ec81a03360"
+    }
+  },
+  "blockers": [],
+  "open_questions": [
+    {
+      "id": "OQ-P05",
+      "owner": "BA + architect",
+      "affected_gates": [
+        "ARCHITECTURE",
+        "IMPLEMENTATION"
+      ],
+      "question": "Fee token khác, dust sau repay, partial repay vượt/thiếu liability, external transfer chưa phân loại: MVP chỉ \"phát hiện + chặn tự động hoá, yêu cầu user xử lý thủ công\".",
+      "status": "RESOLVED",
+      "evidence": "architecture/capital-provenance-ledger.md COND-004: mọi case trả lỗi rõ ràng yêu cầu correction event thủ công, không tính toán tự động. QA phải verify hành vi chặn này trước DONE."
+    },
+    {
+      "id": "OQ-C01",
+      "owner": "BA + user",
+      "affected_gates": [
+        "IMPLEMENTATION"
+      ],
+      "question": "Ngưỡng lệch (BR-009) giữa ledger nội bộ và Binance read-only, và ngưỡng dust khi đóng REPAID (AC-011), phải ở đơn vị borrowed-asset gốc (không phải USDT — COND-001 chốt 0.01 USDT không áp dụng được trực tiếp vì khác đơn vị).",
+      "status": "RESOLVED",
+      "evidence": "Trùng COND-001b — user xác nhận giữ mặc định 0 (exact match) ngày 2026-10-01."
+    },
+    {
+      "id": "OQ-C02",
+      "owner": "BA + architect",
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
+      "question": "Cơ chế concurrency control cho event cùng Borrow Position (optimistic lock/DB transaction) khớp pattern Prisma đã dùng ở feature trước như thế nào?",
+      "status": "RESOLVED",
+      "evidence": "analysis/capital-provenance-ledger-feasibility.md Decision/COND-003: BA xác định đây là quyết định kỹ thuật thuần tuý (không phải chính sách nghiệp vụ cần user), giao cho architect tự chọn cơ chế và ghi rõ trong architecture.md."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "MVP dựa hoàn toàn vào user tự nhập sự kiện đúng thời điểm (chưa có Binance Execution tự động ghi event); nếu user quên ghi hoặc nhập sai số liệu (vd. proceeds thực nhận), ledger sai mà reconciliation chỉ phát hiện được phần so sánh được với Binance (liability/borrowed asset), không phát hiện sai lệch nội bộ giữa các lot.",
+      "owner": "user",
+      "status": "OPEN",
+      "mitigation": "UX phải cảnh báo rõ giới hạn này (US-006 chỉ phát hiện lệch so với Binance, không đảm bảo lot-level accuracy); cần user chấp nhận residual risk trước DONE."
+    }
+  ],
+  "conditions": [
+    {
+      "id": "COND-001",
+      "owner": "BA + user",
+      "due_gate": "ARCHITECTURE",
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
+      "description": "Xác định giá trị/nguồn ngưỡng lệch (dust vs drift thật) dùng chung cho BR-009 (reconciliation) và dust-on-repay (AC-011 đề xuất).",
+      "status": "RESOLVED",
+      "evidence": "User chốt 0.01 USDT (2026-10-01). Khi architect thiết kế, phát hiện BR-009/AC-011 thực chất đo bằng đơn vị borrowed-asset gốc, không phải USDT — 0.01 USDT không áp dụng trực tiếp được. Tách thành COND-001b/OQ-C01 (giá trị native-unit, còn OPEN), kiến trúc dùng mặc định an toàn = 0 (exact match) cho tới khi có quyết định khác (architecture/capital-provenance-ledger.md Open decisions)."
+    },
+    {
+      "id": "COND-002",
+      "owner": "architect",
+      "due_gate": "ARCHITECTURE",
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
+      "description": "Thiết kế idempotency cho ghi nhận event (double-submit) — idempotency key hoặc unique constraint + chặn double-click UI — trước khi architecture READY.",
+      "status": "RESOLVED",
+      "evidence": "architecture/capital-provenance-ledger.md: header Idempotency-Key bắt buộc + LedgerEvent.@@unique([userId, idempotencyKey]), upsert-style trả lại event đã ghi nếu trùng key."
+    },
+    {
+      "id": "COND-003",
+      "owner": "architect",
+      "due_gate": "ARCHITECTURE",
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
+      "description": "Chọn và ghi rõ cơ chế concurrency control (optimistic lock/DB transaction) cho event cùng Borrow Position trong architecture.md.",
+      "status": "RESOLVED",
+      "evidence": "architecture/capital-provenance-ledger.md: optimistic lock qua cột version trên BorrowPosition/AllocationLot, update WHERE id AND version trong cùng transaction Prisma với insert LedgerEvent; 0 row affected -> 409 CONCURRENT_MODIFICATION."
+    },
+    {
+      "id": "COND-004",
+      "owner": "BA + architect",
+      "due_gate": "IMPLEMENTATION",
+      "affected_gates": [
+        "ARCHITECTURE",
+        "IMPLEMENTATION"
+      ],
+      "description": "Giữ nguyên mức \"detect + block + manual\" cho OQ-P05 (fee token khác, dust, overpayment, external transfer); architecture phải thiết kế rõ trạng thái/field cho các case này là cần xử lý thủ công, không âm thầm bỏ qua. Review/QA phải verify đúng hành vi chặn tự động hoá.",
+      "status": "RESOLVED",
+      "evidence": "architecture/capital-provenance-ledger.md: REPAY overpayment -> 422 yêu cầu xử lý riêng; mọi case OQ-P05 chỉ có lối thoát duy nhất là tạo correction event thủ công qua POST /api/ledger/events/:id/correct, không có tính toán tự động nào. Due_gate giữ IMPLEMENTATION để review/QA verify hành vi thực tế trước khi coi RESOLVED hoàn toàn ở cấp DONE."
+    },
+    {
+      "id": "COND-001b",
+      "owner": "BA + user",
+      "due_gate": "IMPLEMENTATION",
+      "affected_gates": [
+        "IMPLEMENTATION"
+      ],
+      "description": "Giá trị ngưỡng dust/drift ở đơn vị borrowed-asset gốc (không phải USDT) cho BR-009 (reconciliation) và AC-011 (REPAID dust).",
+      "status": "RESOLVED",
+      "evidence": "User xác nhận 'ok' (2026-10-01), giữ mặc định an toàn của architecture: ngưỡng = 0 (exact match). Chấp nhận rủi ro false positive do interest tích luỹ liên tục giữa lúc ghi ledger và lúc đọc Binance; có thể điều chỉnh sau nếu thực tế gây phiền."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "WARNING-002",
+      "severity": "MEDIUM",
+      "description": "BR-009 (DRIFT_DETECTED) và AC-007 (reconcile) chưa có evidence end-to-end với 1 Binance account thật tạo ra lệch thật, chỉ có unit test mock response Binance (kế thừa RISK-001 từ binance-read-only-connection).",
+      "owner": "user",
+      "status": "OPEN",
+      "accepted_by": null
+    },
+    {
+      "id": "WARNING-003",
+      "severity": "LOW",
+      "description": "Tạo Allocation Lot funded từ Borrow Position qua AllocationLotForm ở trang chính không tự refresh danh sách lot trong BorrowPositionCard tương ứng ngay lập tức (cần tải lại trang). Dữ liệu DB đúng ngay, chỉ là UI staleness, không phải sai số liệu tài chính.",
+      "owner": "product",
+      "status": "OPEN",
+      "accepted_by": null
+    },
+    {
+      "id": "WARNING-004",
+      "severity": "MEDIUM",
+      "description": "Chưa test UI bằng trình duyệt thật (môi trường thực thi không có công cụ browser automation). Chỉ có Testing Library (jsdom).",
+      "owner": "user",
+      "status": "OPEN",
+      "accepted_by": null
+    }
+  ],
+  "history": [
+    {
+      "timestamp": "2026-10-01T12:00:00Z",
+      "actor": "coordinator",
+      "transition": "IDEA -> REQUIREMENT -> BA_FEASIBILITY (requirement_status: NOT_STARTED -> READY)",
+      "reason": "User chọn Capital Provenance Ledger là feature tiếp theo trong roadmap (docs/CAPITAL_PROVENANCE.md, SUMMARY.md). Trước khi viết requirement, product-requirement-agent hỏi user 4 quyết định MVP-scoping bắt buộc (OQ-P01 mixed-source, OQ-P02 proceeds release, OQ-P03 SOL scope, OQ-P04 debt aggregation) vì docs/CAPITAL_PROVENANCE.md ghi rõ \"Không có policy mặc định\" và owner gồm cả user; không tự chọn policy theo AGENTS.md. User chốt cả 4 theo phương án MVP-safe (chặn mixed-source, reserve 100% tới REPAID, chỉ BTC/ETH, 1 Borrow Position/asset). requirements/capital-provenance-ledger.md được viết theo quyết định này, requirement_status đề xuất READY để BA feasibility review. OQ-P05, OQ-C01, OQ-C02 còn OPEN, chuyển cho BA.",
+      "evidence": "requirements/capital-provenance-ledger.md (sha256:429b97a572705c75a7570e44054961ab5b8841cd554bc884e8e64760c07db5e6)"
+    },
+    {
+      "timestamp": "2026-10-01T13:00:00Z",
+      "actor": "coordinator",
+      "transition": "BA_FEASIBILITY -> ARCHITECTURE (ba_status: NOT_STARTED -> APPROVED_WITH_CONDITIONS)",
+      "reason": "ba-feasibility-agent review requirement r1-2026-10-01: không phát hiện blocker tài chính/an toàn mới (mọi case chưa chốt policy đã được requirement hạ xuống mức detect+block+manual). OQ-P05 giữ OPEN chuyển ARCHITECTURE/IMPLEMENTATION làm COND-004. OQ-C01 (ngưỡng dust/drift) giữ OPEN làm COND-001, owner BA+user. OQ-C02 (concurrency) RESOLVED — BA xác định đây là quyết định kỹ thuật, giao architect (COND-003). Phát hiện thêm gap rounding-to-zero khi REPAID (đề xuất AC-011) và idempotency double-submit (COND-002), chưa có trong requirement gốc nên không sửa requirement.md mà thêm làm condition cho ARCHITECTURE.",
+      "evidence": "analysis/capital-provenance-ledger-feasibility.md (sha256:7d0ee4a50751a9a0ef4453b7a048039404c4bab3f18e99ed0e99264750d224d2)"
+    },
+    {
+      "timestamp": "2026-10-01T14:00:00Z",
+      "actor": "coordinator",
+      "transition": "architecture_status: NOT_STARTED -> READY (stage giữ ARCHITECTURE, chờ DESIGN song song trước khi sang IMPLEMENTATION)",
+      "reason": "architect-agent thiết kế schema (BorrowPosition/AllocationLot/LedgerEvent), API, state machine, idempotency (COND-002 RESOLVED), optimistic lock (COND-003 RESOLVED), và xử lý OQ-P05 bằng correction event thủ công (COND-004 RESOLVED). Phát hiện gap mới: ngưỡng dust 0.01 USDT (COND-001) user đã chốt không áp dụng được trực tiếp cho BR-009/AC-011 vì khác đơn vị (borrowed-asset gốc, không phải USDT) — tách thành COND-001b/OQ-C01, dùng mặc định an toàn 0 (exact match), không chặn ARCHITECTURE READY vì chỉ là hằng số cấu hình. docs/DATABASE.md đã cập nhật 3 bảng PLANNED (BorrowPosition, AllocationLot, LedgerEvent) cùng lúc theo yêu cầu bắt buộc AGENTS.md.",
+      "evidence": "architecture/capital-provenance-ledger.md (sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2); docs/DATABASE.md"
+    },
+    {
+      "timestamp": "2026-10-01T15:00:00Z",
+      "actor": "coordinator",
+      "transition": "design_status: NOT_STARTED -> READY; stage: ARCHITECTURE -> IMPLEMENTATION (chưa authorized)",
+      "reason": "design-agent đặc tả toàn bộ màn hình/form cho US-001..US-008 (BorrowPositionForm, SellAssetForm, AllocationLotForm, SellLotForm, RepayForm, ReconcileButton/DriftPanel, CorrectionForm/history), thêm 1 common component mới SelectField (lý do rõ ràng, chưa có pattern tương đương). Cả architecture_status và design_status đều READY nên stage chuyển IMPLEMENTATION theo workflow, nhưng implementation_authorized vẫn false: (1) BLOCKER-IMPL-001 — COND-001b/OQ-C01 đến hạn chưa RESOLVED; (2) user chưa yêu cầu explicit bắt đầu implementation (AGENTS.md).",
+      "evidence": "design/capital-provenance-ledger.md (sha256:5f8dda64c3c5006fd13db6f784b13bc0f8fa70a9ca4c0e0d810a73c164586f8f)"
+    },
+    {
+      "timestamp": "2026-10-01T16:00:00Z",
+      "actor": "coordinator",
+      "transition": "implementation_authorized: false -> true; implementation_status: NOT_STARTED -> IN_PROGRESS",
+      "reason": "User trả lời 'ok' cho đề xuất giữ ngưỡng dust/drift mặc định 0 (COND-001b/OQ-C01 RESOLVED) và cho phép bắt đầu implementation. BLOCKER-IMPL-001 gỡ bỏ. Backend-agent + frontend-agent bắt đầu triển khai theo architecture/design đã READY.",
+      "evidence": "Hội thoại user 2026-10-01: 'ok' sau câu hỏi xác nhận COND-001b + xin phép implementation"
+    },
+    {
+      "timestamp": "2026-10-01T18:00:00Z",
+      "actor": "coordinator",
+      "transition": "implementation_status: IN_PROGRESS -> READY; stage: IMPLEMENTATION -> CODE_REVIEW",
+      "reason": "Backend (LedgerModule: schema+migration, service, controller, DTO, Swagger, Postman) và frontend (SelectField + 9 component ledger, route/nav mới) hoàn tất theo architecture/design. 88/88 unit test backend, 29/29 test frontend pass; build sạch cả 2 phía. Verify thật bằng curl end-to-end qua server + Postgres thật (không chỉ mock) theo đúng luồng Postman collection, phát hiện và sửa 1 bug thật (BR-002 trả 500 thay vì 409 do giả định sai format lỗi unique constraint của Postgres cho partial index) + 1 bug UI (RepayForm đóng form trước khi user kịp thấy thông báo đã giải phóng vốn). Thêm 1 bảng ngoài architecture (PersonalCapitalDeclaration, deviation storage-only) — đã cập nhật docs/DATABASE.md. Chưa test UI bằng trình duyệt thật (môi trường không có công cụ browser automation) — ghi rõ trong implementation.md, khuyến nghị QA gate bổ sung. Đề xuất chuyển CODE_REVIEW; reviewer phải độc lập với người viết implementation (coordinator ở stage này), theo AGENTS.md.",
+      "evidence": "features/capital-provenance-ledger/implementation.md (sha256:d69a1220dcd186218ba3003148a2107825236806a49ef6d75f6d65ec027942e4)"
+    },
+    {
+      "timestamp": "2026-10-02T09:20:00Z",
+      "actor": "coordinator",
+      "transition": "review_status: NOT_STARTED -> APPROVED; stage: CODE_REVIEW -> QA",
+      "reason": "/code-review chạy forked execution độc lập trên diff thật của branch feature/capital-provenance-ledger, tìm 2 finding MEDIUM thật: (1) RepayForm tái dùng Idempotency-Key cho lần repay thứ 2 trong cùng form đang mở -> backend coi là replay, không ghi event mới, không báo lỗi (silent data loss); (2) createAllocationLot trả 422 thay vì 409 khi Borrow Position nguồn DRIFT_DETECTED, sai lệch so với state machine trong architecture.md (BR-009 phải dùng chung 1 khoá 409 cho mọi action dùng position đó làm nguồn). Cả 2 đã fix + thêm test regression (RepayForm.test.tsx, ledger.service.spec.ts case DRIFT_DETECTED). Backend 89/89, frontend 30/30 pass sau fix. implementation.md và decision.json cập nhật revision mới sau fix (không giữ revision cũ đã có finding).",
+      "evidence": "features/capital-provenance-ledger/review.md (sha256:6b5e678a2aca32ec2bbe186680290ed5eb8dc6caed57550f53be0b8e5e14f4b3); features/capital-provenance-ledger/implementation.md (sha256:21818a63177d9dbc28e0b0ed2faf6c10701e7f6ad1fac96ee2a8ce89753c241a)"
+    },
+    {
+      "timestamp": "2026-10-02T02:45:00Z",
+      "actor": "coordinator",
+      "transition": "qa_status: NOT_STARTED -> PASS_WITH_WARNINGS (stage giữ QA, chờ user accept warnings trước DONE)",
+      "reason": "qa-agent chạy thật: 89/89 unit backend, 30/30 test frontend, 30/30 request Postman qua newman (server thật port 3102 + Postgres thật, sau khi sửa 2 lỗi tooling trong Postman collection: thứ tự request và scope biến baseUrl trong prerequest script). Bổ sung curl thủ công cho BR-002, idempotency replay với body khác, concurrency thật (2 request đồng thời repay, xác nhận optimistic lock chặn lost-update), AC-009 SOL, AC-004 mixed-source (lần đầu false-negative do lỗi thao tác test, đã chạy lại đúng), IDOR. Không có defect CRITICAL/HIGH. 3 warning (Binance drift chưa test thật, UI staleness nhỏ, chưa test trình duyệt thật) cần user/product xác nhận chấp nhận trước khi coi DONE theo Definition of Done.",
+      "evidence": "qa/capital-provenance-ledger.md (sha256:1b541e469deca6058db9bf4ce96d725ef935c55f4488bb12f15074ec81a03360)"
+    }
+  ]
+}
