@@ -5,6 +5,7 @@ import type { AllocationLotView, BorrowPositionView } from '../../api/ledgerType
 import { SellAssetForm } from './SellAssetForm';
 import { RepayForm } from './RepayForm';
 import { ReconcilePanel } from './ReconcilePanel';
+import { RiskCheckAction } from './RiskCheckAction';
 import { AllocationLotCard } from './AllocationLotCard';
 import { EventHistoryPanel } from './EventHistoryPanel';
 
@@ -57,6 +58,7 @@ export function BorrowPositionCard({ position, onUpdated, onRefreshNeeded }: Bor
       )}
 
       {!terminal && <ReconcilePanel position={position} onReconciled={onRefreshNeeded} />}
+      {!terminal && <RiskCheckAction position={position} />}
 
       {showSellAsset && (
         <SellAssetForm

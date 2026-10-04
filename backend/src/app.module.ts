@@ -11,6 +11,7 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { BinanceConnectionModule } from './binance-connection/binance-connection.module';
 import { LedgerModule } from './ledger/ledger.module';
+import { RiskEngineModule } from './risk-engine/risk-engine.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { LedgerModule } from './ledger/ledger.module';
     AuthModule,
     BinanceConnectionModule,
     LedgerModule,
+    RiskEngineModule,
   ],
 })
 export class AppModule {}

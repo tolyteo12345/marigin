@@ -1,0 +1,229 @@
+{
+  "feature": "risk-engine",
+  "contract_version": 1,
+  "owner": "coordinator",
+  "updated_at": "2026-10-02T00:00:00Z",
+  "stage": "QA",
+  "requirement_status": "READY",
+  "ba_status": "APPROVED_WITH_CONDITIONS",
+  "architecture_status": "READY",
+  "design_status": "READY",
+  "implementation_status": "READY",
+  "review_status": "APPROVED",
+  "qa_status": "PASS_WITH_WARNINGS",
+  "implementation_authorized": true,
+  "implementation_authorization_evidence": "User instruction 2026-10-02: xác nhận \"ok\" sau khi coordinator hỏi có tiến hành IMPLEMENTATION hay không, với architecture_status và design_status đều đã READY.",
+  "implementation_revision": "sha256:4bfc0fab0c7515707a74d83e65195e6ac916574d98af443efe217c9792002378",
+  "reviewed_revision": "sha256:4bfc0fab0c7515707a74d83e65195e6ac916574d98af443efe217c9792002378",
+  "qa_revision": "sha256:4bfc0fab0c7515707a74d83e65195e6ac916574d98af443efe217c9792002378",
+  "artifacts": {
+    "requirement": {
+      "path": "requirements/risk-engine.md",
+      "revision": "sha256:e783fcf3990c8263c05fdae139dc92267879be56148507a136bb4e7d81ab0ef8"
+    },
+    "ba": {
+      "path": "analysis/risk-engine-feasibility.md",
+      "revision": "sha256:08ae71ee4ad01a489e98d0bb1ca858639863d18a110246ca5d52566853b06c79"
+    },
+    "architecture": {
+      "path": "architecture/risk-engine.md",
+      "revision": "sha256:dbbbf5e9b7b91a53bd558ffafe0610c3b008d6fba985e678d5f28b7e9ac19256"
+    },
+    "design": {
+      "path": "design/risk-engine.md",
+      "revision": "sha256:9357e174da1c0c7e919c1cce963621ebf8a2d614c9db0fa78580cca74cd80096"
+    },
+    "implementation": {
+      "path": "features/risk-engine/implementation.md",
+      "revision": "sha256:4bfc0fab0c7515707a74d83e65195e6ac916574d98af443efe217c9792002378"
+    },
+    "review": {
+      "path": "features/risk-engine/review.md",
+      "revision": "sha256:e88c0390cb5df13c9e43cf7b9060517b98d49b7cd4dfe907ce3e43a3d4fc9a55"
+    },
+    "qa": {
+      "path": "qa/risk-engine.md",
+      "revision": "sha256:cad386dd9128341bdbc3fb746ebc1d45a7bf0c914fc80ca9313f13ce8d4dcc37"
+    }
+  },
+  "blockers": [],
+  "open_questions": [
+    {
+      "id": "OQ-RE01",
+      "description": "Collateral proxy (totalCollateralValueInUSDT) kế thừa NEEDS_VERIFICATION từ binance-read-only-connection (chưa có evidence gọi API margin account thật bằng key thật).",
+      "owner": "ba-feasibility-agent",
+      "affected_gates": [
+        "BA_FEASIBILITY",
+        "ARCHITECTURE"
+      ],
+      "status": "OPEN"
+    },
+    {
+      "id": "OQ-RE02",
+      "description": "Khi nào cần Market Data tự động thay input tay current_price — không chặn MVP, chỉ ghi lại để không hiểu lầm đã có feed giá tự động.",
+      "owner": "product + user",
+      "affected_gates": [
+        "ARCHITECTURE",
+        "DESIGN"
+      ],
+      "status": "OPEN"
+    },
+    {
+      "id": "OQ-RE03",
+      "description": "Khi user có nhiều Binance connection VERIFIED: MVP tạm dùng connection lastVerifiedAt gần nhất làm nguồn collateral duy nhất, không cộng dồn nhiều account — lựa chọn kỹ thuật tạm, chưa phải policy đã duyệt.",
+      "owner": "product + user",
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
+      "status": "OPEN"
+    }
+  ],
+  "risks": [
+    {
+      "description": "Collateral proxy chỉ là totalCollateralValueInUSDT thô từ Binance, không áp haircut/valuation bổ sung của sản phẩm; cap R1 có thể sai lệch so với cap chính thức nếu BA sau này định nghĩa collateral khác.",
+      "owner": "user",
+      "status": "ACCEPTED",
+      "accepted_by": "user",
+      "reason": "Quyết định scoping MVP 2026-10-02: dùng raw USDT-equivalent balance từ Binance làm proxy, miễn là UI disclaimer rõ mỗi lần hiển thị.",
+      "evidence": "AskUserQuestion 2026-10-02, câu hỏi \"Định nghĩa collateral\""
+    },
+    {
+      "description": "Ước tính buyback cost (R2) không trừ fee/slippage thực tế mua lại.",
+      "owner": "user",
+      "status": "ACCEPTED",
+      "accepted_by": "user",
+      "reason": "MVP chỉ cần ước tính thô để cảnh báo sớm; tính chính xác thuộc Profit & Repay Calculator (feature khác).",
+      "evidence": "requirements/risk-engine.md — Open questions / risks"
+    }
+  ],
+  "conditions": [
+    {
+      "id": "COND-001",
+      "description": "UI/API response label collateral proxy phải ghi rõ 'Collateral value (USDT) — theo Binance totalCollateralValueInUSDT, ước lượng chưa verify bằng API thật'.",
+      "owner": "architect-agent",
+      "due_gate": "ARCHITECTURE",
+      "affected_gates": [
+        "ARCHITECTURE",
+        "DESIGN"
+      ],
+      "status": "RESOLVED",
+      "evidence": "architecture/risk-engine.md — mục 'COND-001 giải quyết' (field collateral.disclaimer trong response); design/risk-engine.md RiskSummaryWidget hiển thị nguyên văn disclaimer"
+    },
+    {
+      "id": "COND-002",
+      "description": "Architecture phải tham chiếu đúng revision hiện tại của capital-provenance-ledger (liabilityLedger, quantity, firstBorrowEntryPrice) và ghi rõ nghĩa vụ re-verify nếu feature đó đổi schema sau (hiện mới QA PASS_WITH_WARNINGS, chưa DONE).",
+      "owner": "architect-agent + coordinator",
+      "due_gate": "ARCHITECTURE",
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
+      "status": "RESOLVED",
+      "evidence": "architecture/risk-engine.md — mục 'COND-002 giải quyết' (reuse LedgerService public API, revision sha256:da81fdb2a2756da5e4fd9683f793df7aa2c39bd76b8f83917b3a979def7b83a2 ghi rõ, TypeScript compile là cơ chế phát hiện breakage)"
+    },
+    {
+      "id": "COND-003",
+      "description": "Architecture phải chọn 1 quy tắc xác định (lastVerifiedAt gần nhất) khi user có nhiều Binance connection VERIFIED, ghi rõ đây là lựa chọn kỹ thuật tạm (OQ-RE03), không cộng dồn nhiều account âm thầm.",
+      "owner": "architect-agent",
+      "due_gate": "ARCHITECTURE",
+      "affected_gates": [
+        "ARCHITECTURE"
+      ],
+      "status": "RESOLVED",
+      "evidence": "architecture/risk-engine.md — mục 'COND-003' (cập nhật sau code review 2026-10-02: resolveCollateralProxy dùng BinanceConnectionService.list() + find(status==='VERIFIED'), khớp code thật, không phải Prisma query ORDER BY lastVerifiedAt như bản gốc)"
+    }
+  ],
+  "warnings": [
+    {
+      "description": "Trong lúc implementation, các thay đổi ban đầu bị tạo nhầm trực tiếp trên main (worktree chính) thay vì worktree feature/risk-engine — vi phạm tạm thời quy tắc git worktree/branching ở AGENTS.md. Tự phát hiện và sửa bằng git stash (main) -> git stash pop (worktree feature/risk-engine) trước khi tiếp tục; main đã xác nhận sạch lại.",
+      "severity": "LOW",
+      "accepted_by": "coordinator"
+    },
+    {
+      "description": "WARNING-001: case R1 OVER_BORROW_CAP/collateral OK với dữ liệu Binance thật chưa có evidence (không có Binance account thật trong môi trường QA). Kế thừa RISK-001 từ binance-read-only-connection.",
+      "severity": "MEDIUM",
+      "accepted_by": null
+    },
+    {
+      "description": "WARNING-002: chưa test UI bằng browser thật (chỉ Testing Library/jsdom) — môi trường không có công cụ browser automation.",
+      "severity": "LOW",
+      "accepted_by": null
+    },
+    {
+      "description": "WARNING-003: OQ-RE03 (nhiều Binance connection VERIFIED) chưa test bằng dữ liệu thật, chỉ xác nhận code deterministic qua đọc code.",
+      "severity": "LOW",
+      "accepted_by": null
+    }
+  ],
+  "history": [
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "IDEA -> REQUIREMENT",
+      "reason": "User chọn risk-engine là feature tiếp theo trong roadmap (dependency: collateral semantics, positions, ledger đã đủ sau user-authentication + binance-read-only-connection + capital-provenance-ledger).",
+      "evidence": "AskUserQuestion 2026-10-02 \"Feature tiếp theo\" = Risk Engine"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "requirement_status NOT_STARTED -> READY",
+      "reason": "product-requirement-agent hoàn thành requirements/risk-engine.md với 2 quyết định scoping MVP (current_price nhập tay, collateral proxy = USDT netAsset thô) do user chốt trực tiếp qua AskUserQuestion trước khi viết requirement, tránh agent tự chọn policy.",
+      "evidence": "requirements/risk-engine.md revision sha256:d5595012384086a5a722284b5a7f236ecac6d27a0f9e75c9e2d9d9ce3147015e"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "requirement revision update (editorial correctness fix, no re-approval needed — chưa có approval nào để invalidate)",
+      "reason": "BR-009/buyback cost formula sửa từ 'quantity' mơ hồ sang liabilityLedger (field đã có trong architecture/capital-provenance-ledger.md đã READY), tránh BA phải tự đoán ý nghĩa field khi review.",
+      "evidence": "requirements/risk-engine.md revision sha256:d5595012384086a5a722284b5a7f236ecac6d27a0f9e75c9e2d9d9ce3147015e"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "REQUIREMENT -> BA_FEASIBILITY, ba_status NOT_STARTED -> APPROVED_WITH_CONDITIONS",
+      "reason": "ba-feasibility-agent xác nhận khả thi, tái dùng evidence đã verify từ binance-read-only-connection (EV-001) và field schema đã READY của capital-provenance-ledger; sửa 1 gap (buyback cost dùng liabilityLedger thay vì quantity) trước khi requirement được viết, 2 condition còn lại due tại ARCHITECTURE.",
+      "evidence": "analysis/risk-engine-feasibility.md revision sha256:2734a2f04b5d6d4ad1ca515e7e92d03d9c50a47b8cd1e68c35a4d5ce6e4b22b1"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "requirement + ba revision update (correctness fix, giữ ba_status APPROVED_WITH_CONDITIONS — gap tự phát hiện trước khi dispatch architecture, không phải invalidation sau approval)",
+      "reason": "Đọc trực tiếp backend/src/binance-adapter/binance-api.types.ts phát hiện field totalCollateralValueInUSDT đã có sẵn, đúng ngữ nghĩa collateral hơn lựa chọn ban đầu (userAssets[USDT].netAsset). Sửa BR-006 và evidence liên quan trong cả requirement và BA feasibility trước khi sang ARCHITECTURE; thêm COND-003 (chọn connection khi có nhiều VERIFIED) và OQ-RE03.",
+      "evidence": "requirements/risk-engine.md revision sha256:e783fcf3990c8263c05fdae139dc92267879be56148507a136bb4e7d81ab0ef8; analysis/risk-engine-feasibility.md revision sha256:08ae71ee4ad01a489e98d0bb1ca858639863d18a110246ca5d52566853b06c79"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "BA_FEASIBILITY -> ARCHITECTURE, architecture_status NOT_STARTED -> READY, design_status NOT_STARTED -> READY",
+      "reason": "architect-agent thiết kế không schema DB mới (feature chỉ đọc + tính toán stateless), tái dùng LedgerService.listBorrowPositions/getBorrowPosition và BinanceConnectionService.getAccountSnapshot đã export; resolve COND-001/002/003. design-agent (chạy song song) spec UI mở rộng LedgerDashboardPage hiện có (RiskSummaryWidget + RiskCheckAction trong BorrowPositionCard), tái dùng common component sẵn có, không thêm component mới.",
+      "evidence": "architecture/risk-engine.md revision sha256:0478202d0b88d2a84566e07f31a16831ea09b8ee6b69138f58d8c56876437368; design/risk-engine.md revision sha256:9357e174da1c0c7e919c1cce963621ebf8a2d614c9db0fa78580cca74cd80096"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "ARCHITECTURE -> IMPLEMENTATION -> CODE_REVIEW, implementation_status NOT_STARTED -> READY, implementation_authorized false -> true",
+      "reason": "User xác nhận 'ok' để bắt đầu implementation. backend-agent + frontend-agent viết RiskEngineModule (không bảng DB mới), mở rộng CapitalProvenanceLedgerPage/BorrowPositionCard. Phát hiện và sửa 1 gap thật trong binance-connection.service.ts (AccountSnapshot thiếu totalCollateralValueInUSDT). Verify bằng tsc/jest/vitest sạch + curl end-to-end qua server + Postgres thật. Phát hiện và tự sửa 1 vi phạm quy trình (code bị tạo nhầm trên main, đã chuyển qua git stash/pop sang đúng worktree) — ghi ở warnings.",
+      "evidence": "features/risk-engine/implementation.md revision sha256:61961f98f0079892d518309c572f77cce922c24be535b0f87db91176f60940a7"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "CODE_REVIEW -> QA, review_status NOT_STARTED -> APPROVED",
+      "reason": "/code-review (forked execution độc lập, medium effort, nhiều agent song song) tìm 3 finding LOW (doc/code mismatch COND-003, 3 bản sao formatTimestamp, await tuần tự không cần thiết) + 1 ghi nhận không sửa (trùng boilerplate api client, pre-existing pattern, ngoài scope). Áp dụng cả 3 fix, cập nhật lại architecture.md khớp code thật, re-verify: backend 99/99 pass + tsc sạch, frontend 32/32 pass + tsc sạch. Không có finding MEDIUM/HIGH, không vi phạm correctness/an toàn.",
+      "evidence": "features/risk-engine/review.md revision sha256:78a2117280871308b363806c7f8fd79b512170c5ec067e57b3a50ef93a8360da; architecture/risk-engine.md revision sha256:dbbbf5e9b7b91a53bd558ffafe0610c3b008d6fba985e678d5f28b7e9ac19256; features/risk-engine/implementation.md revision sha256:be141ac497c50040e2bdf863b62100d2849d296ec3a8eb724c3cecb59a089b0f"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "implementation + review revision update (1 finding bổ sung từ agent review chạy nền, confidence thấp, đã fix phòng ngừa)",
+      "reason": "Agent review góc 'conventions' (chạy nền, hoàn thành sau batch đầu) tìm thêm 1 finding LOW/confidence-thấp: RiskCheckAction.tsx dùng Number(currentPrice) <= 0 (float parse trên giá trị tiền tệ, dù chỉ là UI gate). Sửa phòng ngừa bằng isZeroDecimalString() (string-only, không parse số) trong decimalInput.ts. Re-verify: frontend tsc sạch, vitest 32/32 pass.",
+      "evidence": "features/risk-engine/implementation.md revision sha256:4bfc0fab0c7515707a74d83e65195e6ac916574d98af443efe217c9792002378; features/risk-engine/review.md revision sha256:e88c0390cb5df13c9e43cf7b9060517b98d49b7cd4dfe907ce3e43a3d4fc9a55"
+    },
+    {
+      "timestamp": "2026-10-02T00:00:00Z",
+      "actor": "coordinator",
+      "transition": "qa_status NOT_STARTED -> PASS_WITH_WARNINGS",
+      "reason": "qa-agent chạy newman thật (15 request, 0 fail) + curl bổ sung (tổng exposure nhiều position, loại REPAID khỏi tổng, R2 trên position REPAID theo đúng spec) qua server NestJS thật + Postgres thật trên port cô lập 3103, cùng frontend build + test. Toàn bộ AC kiểm chứng được trong môi trường hiện tại PASS. 3 warning đều là giới hạn môi trường (không có Binance account thật, không có browser automation), không che giấu correctness/an toàn. Giữ stage=QA, CHƯA chuyển DONE vì Definition of Done yêu cầu user/product owner accept rõ ràng từng warning trước.",
+      "evidence": "qa/risk-engine.md revision sha256:cad386dd9128341bdbc3fb746ebc1d45a7bf0c914fc80ca9313f13ce8d4dcc37"
+    }
+  ]
+}

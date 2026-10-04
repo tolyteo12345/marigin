@@ -270,6 +270,7 @@ describe('LedgerService', () => {
         totalAssetOfBtc: '1',
         totalLiabilityOfBtc: '0',
         totalNetAssetOfBtc: '1',
+        totalCollateralValueInUSDT: '1',
         userAssets: [{ asset: 'ZEC', borrowed: '25.3', free: '0', interest: '0', locked: '0', netAsset: '0' }],
       });
       prisma.borrowPosition.updateMany.mockResolvedValueOnce({ count: 1 });
