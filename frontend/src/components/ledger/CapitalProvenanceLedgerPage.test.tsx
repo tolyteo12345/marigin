@@ -51,6 +51,30 @@ function emptyAllocationLotsRoute(): Route {
   return { method: 'GET', test: (url) => url.includes('/api/ledger/allocation-lots'), handler: () => json([]) };
 }
 
+function exposureSummaryRoute(overrides: Partial<Record<string, unknown>> = {}): Route {
+  return {
+    method: 'GET',
+    test: (url) => url.endsWith('/api/risk-engine/exposure-summary'),
+    handler: () =>
+      json({
+        positions: [],
+        totalInitialExposureUsdt: '0',
+        collateral: {
+          status: 'NO_VERIFIED_CONNECTION',
+          value: null,
+          fetchedAt: null,
+          sourceConnectionId: null,
+          errorMessage: null,
+          disclaimer: 'Collateral value (USDT) — theo Binance totalCollateralValueInUSDT, ước lượng chưa verify bằng API thật.',
+        },
+        cap: null,
+        overCap: false,
+        capUnavailableReason: 'Chưa có kết nối Binance đã verify — không thể tính cap.',
+        ...overrides,
+      }),
+  };
+}
+
 const position = {
   id: 'pos-1',
   borrowedAsset: 'ZEC',
@@ -75,6 +99,7 @@ describe('CapitalProvenanceLedgerPage', () => {
     mockApi([
       csrfRoute,
       availableCapitalRoute(),
+      exposureSummaryRoute(),
       { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions'), handler: () => json([]) },
       emptyAllocationLotsRoute(),
     ]);
@@ -88,6 +113,7 @@ describe('CapitalProvenanceLedgerPage', () => {
     mockApi([
       csrfRoute,
       availableCapitalRoute(),
+      exposureSummaryRoute(),
       { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions'), handler: () => json([]) },
       { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions?status=OPEN'), handler: () => json([]) },
       emptyAllocationLotsRoute(),
@@ -110,6 +136,7 @@ describe('CapitalProvenanceLedgerPage', () => {
     mockApi([
       csrfRoute,
       availableCapitalRoute(),
+      exposureSummaryRoute(),
       { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions'), handler: () => json([position]) },
       { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions?status=OPEN'), handler: () => json([position]) },
       { method: 'GET', test: (url) => url.includes('/api/ledger/allocation-lots?fundingBorrowPositionId='), handler: () => json([]) },
@@ -142,6 +169,7 @@ describe('CapitalProvenanceLedgerPage', () => {
     mockApi([
       csrfRoute,
       availableCapitalRoute(),
+      exposureSummaryRoute(),
       { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions'), handler: () => json([position]) },
       { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions?status=OPEN'), handler: () => json([position]) },
       { method: 'GET', test: (url) => url.includes('/api/ledger/allocation-lots?fundingBorrowPositionId='), handler: () => json([]) },
@@ -161,5 +189,75 @@ describe('CapitalProvenanceLedgerPage', () => {
     await waitFor(() =>
       expect(screen.getByText(/Đã trả hết khoản vay\. Toàn bộ số tiền đang giữ/)).toBeInTheDocument(),
     );
+  });
+
+  it('R1 (docs/RISK_RULES.md): shows OVER_BORROW_CAP banner when total exposure exceeds collateral/3 (AC-005)', async () => {
+    mockApi([
+      csrfRoute,
+      availableCapitalRoute(),
+      exposureSummaryRoute({
+        positions: [{ id: 'pos-1', borrowedAsset: 'ZEC', quantity: '25.1', firstBorrowEntryPrice: '420', initialExposureUsdt: '10542' }],
+        totalInitialExposureUsdt: '10542',
+        collateral: {
+          status: 'OK',
+          value: '20000',
+          fetchedAt: '2026-01-01T00:00:00Z',
+          sourceConnectionId: 'conn-1',
+          errorMessage: null,
+          disclaimer: 'Collateral value (USDT) — theo Binance totalCollateralValueInUSDT, ước lượng chưa verify bằng API thật.',
+        },
+        cap: '6666.6666666666666667',
+        overCap: true,
+        capUnavailableReason: null,
+      }),
+      { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions'), handler: () => json([position]) },
+      { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions?status=OPEN'), handler: () => json([position]) },
+      { method: 'GET', test: (url) => url.includes('/api/ledger/allocation-lots?fundingBorrowPositionId='), handler: () => json([]) },
+      emptyAllocationLotsRoute(),
+    ]);
+
+    render(<CapitalProvenanceLedgerPage />);
+
+    expect(await screen.findByText(/Tổng vay vượt cap khuyến nghị/)).toBeInTheDocument();
+  });
+
+  it('R2 (docs/RISK_RULES.md): checking a position at the 2x boundary shows CRITICAL_REPAY_REQUIRED with buyback estimate (AC-002/AC-003)', async () => {
+    mockApi([
+      csrfRoute,
+      availableCapitalRoute(),
+      exposureSummaryRoute(),
+      { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions'), handler: () => json([position]) },
+      { method: 'GET', test: (url) => url.endsWith('/api/ledger/borrow-positions?status=OPEN'), handler: () => json([position]) },
+      { method: 'GET', test: (url) => url.includes('/api/ledger/allocation-lots?fundingBorrowPositionId='), handler: () => json([]) },
+      emptyAllocationLotsRoute(),
+      {
+        method: 'POST',
+        test: (url) => url.endsWith('/api/risk-engine/positions/pos-1/check'),
+        handler: () =>
+          json({
+            positionId: 'pos-1',
+            positionStatus: 'OPEN',
+            status: 'CRITICAL_REPAY_REQUIRED',
+            firstBorrowEntryPrice: '420',
+            currentPrice: '840',
+            liabilityLedger: '25.1',
+            borrowedAsset: 'ZEC',
+            buybackCostEstimateUsdt: '21084',
+            checkedAt: '2026-01-03T00:00:00Z',
+          }),
+      },
+    ]);
+
+    const user = userEvent.setup();
+    render(<CapitalProvenanceLedgerPage />);
+    await screen.findByText(/Liability: 25.1 ZEC/);
+
+    expect(screen.getByText('Chưa kiểm tra')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Giá hiện tại của ZEC (USDT)'), '840');
+    await user.click(screen.getByRole('button', { name: 'Kiểm tra' }));
+
+    expect(await screen.findByText(/CẦN CHUẨN BỊ TRẢ NỢ/)).toBeInTheDocument();
+    expect(screen.getByText(/21084 USDT/)).toBeInTheDocument();
   });
 });

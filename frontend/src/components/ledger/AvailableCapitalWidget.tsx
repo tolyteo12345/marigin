@@ -3,10 +3,7 @@ import { Button, InlineAlert, TextField } from '../common';
 import { getAvailableCapital, updatePersonalCapital, ApiError } from '../../api/ledgerClient';
 import type { AvailableCapitalView } from '../../api/ledgerTypes';
 import { isDecimalString } from './decimalInput';
-
-function formatTimestamp(iso: string): string {
-  return new Date(iso).toUTCString().replace('GMT', 'UTC');
-}
+import { formatTimestamp } from './formatTimestamp';
 
 // design/capital-provenance-ledger.md mục 2.
 export function AvailableCapitalWidget() {

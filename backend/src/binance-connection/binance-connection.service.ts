@@ -37,6 +37,10 @@ export interface AccountSnapshot {
   totalAssetOfBtc: string;
   totalLiabilityOfBtc: string;
   totalNetAssetOfBtc: string;
+  // Exposed for risk-engine (architecture/risk-engine.md BR-006/COND-001) —
+  // Binance's own USDT-denominated collateral figure, no extra app-level
+  // computation. Additive field, no change to existing callers/behavior.
+  totalCollateralValueInUSDT: string;
   userAssets: CrossMarginAccountResponse['userAssets'];
 }
 
@@ -309,6 +313,7 @@ export class BinanceConnectionService {
       totalAssetOfBtc: result.data.totalAssetOfBtc,
       totalLiabilityOfBtc: result.data.totalLiabilityOfBtc,
       totalNetAssetOfBtc: result.data.totalNetAssetOfBtc,
+      totalCollateralValueInUSDT: result.data.totalCollateralValueInUSDT,
       userAssets: result.data.userAssets,
     };
   }

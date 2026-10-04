@@ -1,0 +1,234 @@
+{
+  "info": {
+    "name": "Margin Trading — risk-engine",
+    "description": "Postman collection cho API của feature risk-engine (R1 exposure/cap, R2 2× first-entry check — docs/RISK_RULES.md). Sinh thủ công khớp với Swagger doc tại GET /api/docs-json — cập nhật cả hai khi API contract đổi. Mọi endpoint yêu cầu session đã đăng nhập (feature user-authentication) — chạy request 'Setup' trước. Cần ít nhất 1 Borrow Position OPEN (feature capital-provenance-ledger) để test endpoint check — collection này tự tạo 1 position để test, không phụ thuộc chạy trước collection ledger.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "csrfToken", "value": "" },
+    { "key": "setupEmail", "value": "postman-risk-engine-test@example.com" },
+    { "key": "borrowPositionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Setup: register a session",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{setupEmail}}\",\n  \"password\": \"a-strong-password\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        },
+        "description": "Chạy 1 lần trước khi test các request risk-engine bên dưới, để có session đã đăng nhập (req.user.id). 200 = tạo mới + đăng nhập. 409 = email đã tồn tại — chạy 'Setup: login' thay thế."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup: login (if already registered)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{setupEmail}}\",\n  \"password\": \"a-strong-password\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "Dùng thay 'Setup: register a session' khi email đã tồn tại từ lần chạy trước."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup: create a borrow position to test against",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" },
+          { "key": "Idempotency-Key", "value": "{{$guid}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"borrowedAsset\": \"ZEC\",\n  \"quantity\": \"25.1\",\n  \"firstBorrowEntryPrice\": \"420\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/ledger/borrow-positions",
+          "host": ["{{baseUrl}}"],
+          "path": ["ledger", "borrow-positions"]
+        },
+        "description": "Tạo (feature capital-provenance-ledger) 1 Borrow Position OPEN: ZEC, quantity 25.1, firstBorrowEntryPrice 420 — dùng để test R2 check bên dưới (ngưỡng 2× = 840). 409 nếu đã có ZEC OPEN từ lần chạy trước — bỏ qua, dùng borrowPositionId cũ (set tay nếu cần)."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body.id) { pm.collectionVariables.set('borrowPositionId', body.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "R1 — GET exposure summary (collateral/cap)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/risk-engine/exposure-summary",
+          "host": ["{{baseUrl}}"],
+          "path": ["risk-engine", "exposure-summary"]
+        },
+        "description": "AC-005/AC-006/AC-007/AC-009. Trả totalInitialExposureUsdt (tổng mọi Borrow Position OPEN), collateral (status OK/NO_VERIFIED_CONNECTION/READ_ERROR, kèm disclaimer), cap, overCap. Không có Binance connection VERIFIED → collateral.status = NO_VERIFIED_CONNECTION, cap = null (KHÔNG phải 0)."
+      }
+    },
+    {
+      "name": "R2 — POST check position risk (OK, below 2x boundary)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"currentPrice\": \"800\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/risk-engine/positions/{{borrowPositionId}}/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["risk-engine", "positions", "{{borrowPositionId}}", "check"]
+        },
+        "description": "AC-001. firstBorrowEntryPrice=420 → ngưỡng 2×=840. currentPrice=800 < 840 → status OK, buybackCostEstimateUsdt = null."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "R2 — POST check position risk (CRITICAL_REPAY_REQUIRED, at 2x boundary)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"currentPrice\": \"840\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/risk-engine/positions/{{borrowPositionId}}/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["risk-engine", "positions", "{{borrowPositionId}}", "check"]
+        },
+        "description": "AC-002/AC-003/BR-009. currentPrice=840 == 2×420 (boundary, >=) → status CRITICAL_REPAY_REQUIRED, buybackCostEstimateUsdt = liabilityLedger × 840."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "R2 — POST check position risk (422, currentPrice invalid)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"currentPrice\": \"0\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/risk-engine/positions/{{borrowPositionId}}/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["risk-engine", "positions", "{{borrowPositionId}}", "check"]
+        },
+        "description": "currentPrice=0 → 422 (service-level check, >0 bắt buộc)."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "R2 — POST check position risk (404, position không tồn tại / không thuộc user — IDOR, AC-008)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-csrf-token", "value": "{{csrfToken}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"currentPrice\": \"800\"\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/risk-engine/positions/00000000-0000-0000-0000-000000000000/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["risk-engine", "positions", "00000000-0000-0000-0000-000000000000", "check"]
+        },
+        "description": "Id không tồn tại (hoặc đổi tay thành id của user khác để test IDOR thật) → 404, không phân biệt 'không tồn tại' vs 'không thuộc bạn'."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const req = { url: pm.variables.get('baseUrl') + '/auth/csrf-token', method: 'GET' };",
+              "pm.sendRequest(req, function (err, response) { pm.collectionVariables.set('csrfToken', response.json().csrfToken); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

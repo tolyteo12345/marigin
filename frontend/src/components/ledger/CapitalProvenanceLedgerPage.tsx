@@ -3,6 +3,7 @@ import { InlineAlert, Button } from '../common';
 import { getBorrowPosition, listAllocationLots, listBorrowPositions, ApiError } from '../../api/ledgerClient';
 import type { AllocationLotView, BorrowPositionView } from '../../api/ledgerTypes';
 import { AvailableCapitalWidget } from './AvailableCapitalWidget';
+import { RiskSummaryWidget } from './RiskSummaryWidget';
 import { BorrowPositionForm } from './BorrowPositionForm';
 import { AllocationLotForm } from './AllocationLotForm';
 import { AllocationLotCard } from './AllocationLotCard';
@@ -55,6 +56,7 @@ export function CapitalProvenanceLedgerPage() {
     <div>
       <h2>Sổ theo dõi nguồn vốn</h2>
 
+      <RiskSummaryWidget />
       <AvailableCapitalWidget />
 
       {positions === null && !error && <p className="text-[var(--color-text-secondary)]">Đang tải...</p>}
